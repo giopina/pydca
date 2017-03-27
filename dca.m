@@ -107,7 +107,7 @@ function [Pij_true,Pi_true,Meff] = Compute_True_Frequencies(align,M,N,q,theta)
 
     W = ones(1,M);
     if( theta > 0.0 )
-        W = (1./(1+sum(squareform(pdist(align,'hamm')<theta))));
+        W = (1./(1+sum(squareform(pdist(align,'hamming')<theta))));
     end
     Meff=sum(W);
 
