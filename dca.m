@@ -49,7 +49,9 @@ function dca(inputfile, outputfile)
 
 
     pseudocount_weight = 0.5; % relative weight of pseudo count   
-    theta = 0.2;              % threshold for sequence id in reweighting
+                              %theta = 0.2;   %threshold for
+                              %sequence id in reweighting
+    theta = 0.1;   
 
     
     [N,M,q,align] = return_alignment(inputfile); 
