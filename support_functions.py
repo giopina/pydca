@@ -138,3 +138,4 @@ class Alignment:
 
                 self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as numbers
 
+                self.q=np.max(Z) # this is really not necessary, but I'm copying the octave code

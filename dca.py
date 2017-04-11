@@ -57,7 +57,48 @@ class DCA:
         """Constructor of the class DCA"""
         self.pseudocount_weight=pseudocount_weight
         self.theta=theta
+        fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
+        self.alignment=sf.Alignment(fasta_list)
 
+def Compute_True_Frequencies(self):
+    """Computes reweighted frequency counts"""
+    ### TODO: this still has to be checked and tested
+    from scipy.spatial.distance import pdist
+    q=self.alignment.q
+    W = np.ones(self.M)
+    if theta > 0.0 :
+#   W = (1./(1+sum(squareform(pdist(align,'hamming')<theta))));
+        cacca=(pdist(align,metric='hamming')<theta)
+        print cacca.shape
+        W= (1./(1+np.sum(squareform(cacca),axis=0)))
+        print(W.shape)
+    self.Meff=sum(W)
+
+    self.Pij_true = zeros(self.N,self.N,q,q)
+    self.Pi_true = zeros(self.N,q)
+
+    align=self.aligment.Z
+    for j in range(self.M):
+        for i in range(self.N):
+            self.Pi_true[i,align[j,i]] = self.Pi_true[i,align[j,i]] + W[j]
+
+    self.Pi_true = self.Pi_true/self.Meff
+
+    for l in range(self.M):
+        for i in range(self.N-1):
+            for j in range(i,selfN):
+                self.Pij_true[i,j,align[l,i],align[l,j]] = self.Pij_true[i,j,align[l,i],align[l,j]] + W[l]
+                self.Pij_true[j,i,align[l,j],align[l,i]] = self.Pij_true[i,j,align[l,i],align[l,j]]
+
+    self.Pij_true = self.Pij_true/self.Meff
+    
+    scra = np.eye(q,q);
+    for i in range(self.N):
+        for alpha in range(q):
+            for beta in range(q):
+                self.Pij_true[i,i,alpha,beta] = Pi_true[i,alpha] * scra[alpha,beta]
+    
+#    return Pij_true,Pi_true,Meff
 
 ###
 ### Here I'm just copying the headers of the functions defined in dca.m
@@ -68,13 +109,14 @@ class DCA:
 #    return N,M,q,Z
 ### now this is done via the class Alignment (see support_functions.py)
 
-def Compute_Results(Pij,Pi,Pij_true,Pi_true,invC,N,q,fp):
-    """Computes and prints the mutual and direct informations"""
     
 def Compute_True_Frequencies(align,M,N,q,theta):
     """Computes reweighted frequency counts"""
     return Pij_true,Pi_true,Meff
 
+
+def Compute_Results(Pij,Pi,Pij_true,Pi_true,invC,N,q,fp):
+    """Computes and prints the mutual and direct informations"""
 
 def with_pc(Pij_true,Pi_true,pseudocount_weight,N,q):
     """Adds pseudocounts"""
