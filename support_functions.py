@@ -1,12 +1,13 @@
 import re
 import datetime
+import numpy as np
 
 def write_log(name, text):
-	log_filename = name + '.log'
-	log_file = open(log_filename, 'w')
-	log_file.write(text)
-	log_file.close()
-
+        log_filename = name + '.log'
+        log_file = open(log_filename, 'w')
+        log_file.write(text)
+        log_file.close()
+        
 
 def header(name):
 	return "[" + name + " " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] "
@@ -87,3 +88,53 @@ def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nu
 				if lett not in allowed_characters:
 					print_log(this_name, "WARNING: Sequence with title {0} contains unknown character {1}".format(seq['title'], lett))
 	return fasta_list
+
+
+class Alignment:
+        
+        def __init__(self,fasta_list):
+                """This creates an Alignment object from a list of sequences. It strip them from lowercase letters and '.' or '*' characters.
+                TODO: add a method to go back to the original indexing of each sequence from the stripped indexes
+                """
+                self.letter2numer={\
+                # full AA alphabet
+                                   '-':0 ,\
+                                   'A':1 ,\
+                                   'C':2 ,\
+                                   'D':3 ,\
+                                   'E':4 ,\
+                                   'F':5 ,\
+                                   'G':6 ,\
+                                   'H':7 ,\
+                                   'I':8 ,\
+                                   'K':9 ,\
+                                   'L':10,\
+                                   'M':11,\
+                                   'N':12,\
+                                   'P':13,\
+                                   'Q':14,\
+                                   'R':15,\
+                                   'S':16,\
+                                   'T':17,\
+                                   'V':18,\
+                                   'W':19,\
+                                   'Y':20,\
+                                   'X':0,\
+                }
+                
+                self.M=len(fasta_list) # this is the number of sequences
+                self.sequences=[seq['sequence'] for seq in fasta_list] # sequences
+                self.names=[seq['title'] for seq in fasta_list] # names of sequences can be useful in the prostprocessing
+                self.__strip()
+
+                
+        def __strip(self):
+                """Fuck this. I'm going to be a stripper"""
+                this_name='stripper'
+                self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*"
+                if len(set([len(s) for s in self.stripped_seqs]))>1:
+                        raise_error(this_name,"ERROR: stripped sequences have different lengths!")
+                self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
+
+                self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as numbers
+

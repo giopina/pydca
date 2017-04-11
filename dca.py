@@ -46,6 +46,7 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 import numpy as np
+import support_functions as sf
 
 class DCA:
     """Class DCA:
@@ -62,10 +63,11 @@ class DCA:
 ### Here I'm just copying the headers of the functions defined in dca.m
 ###
 
-def return_alignment(inputfile):
-    """Reads alignment from inputfile, removes insters and converts into numbers"""
-    return N,M,q,Z
-        
+#def return_alignment(inputfile):
+#    """Reads alignment from inputfile, removes insters and converts into numbers"""
+#    return N,M,q,Z
+### now this is done via the class Alignment (see support_functions.py)
+
 def Compute_Results(Pij,Pi,Pij_true,Pi_true,invC,N,q,fp):
     """Computes and prints the mutual and direct informations"""
     
@@ -73,9 +75,6 @@ def Compute_True_Frequencies(align,M,N,q,theta):
     """Computes reweighted frequency counts"""
     return Pij_true,Pi_true,Meff
 
-def letter2numer(a):
-    # this should be done with a dictionary!!!
-    return x
 
 def with_pc(Pij_true,Pi_true,pseudocount_weight,N,q):
     """Adds pseudocounts"""
@@ -108,3 +107,5 @@ def compute_mu(i,j,W,P1,q):
 def compute_di(i,j,W, mu1,mu2, Pia):
     """computes direct information"""
     return DI
+
+
