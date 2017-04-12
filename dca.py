@@ -57,47 +57,82 @@ class DCA:
         """Constructor of the class DCA"""
         self.pseudocount_weight=pseudocount_weight
         self.theta=theta
+
         fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
         self.alignment=sf.Alignment(fasta_list)
+        self.N=self.alignment.N
+        self.M=self.alignment.M
+        
+        self.Compute_True_Frequencies()
 
-def Compute_True_Frequencies(self):
-    """Computes reweighted frequency counts"""
-    ### TODO: this still has to be checked and tested
-    from scipy.spatial.distance import pdist
-    q=self.alignment.q
-    W = np.ones(self.M)
-    if theta > 0.0 :
-#   W = (1./(1+sum(squareform(pdist(align,'hamming')<theta))));
-        cacca=(pdist(align,metric='hamming')<theta)
-        print cacca.shape
-        W= (1./(1+np.sum(squareform(cacca),axis=0)))
-        print(W.shape)
-    self.Meff=sum(W)
+    def Compute_True_Frequencies(self):
+        """Computes reweighted frequency counts"""
+        ### TODO: this still has to be checked and tested
+        from scipy.spatial.distance import pdist
+        from scipy.spatial.distance import squareform
+        q=self.alignment.q
+        W = np.ones(self.M)
+        align=self.alignment.Z
+        if self.theta > 0.0 :
+            #   W = (1./(1+sum(squareform(pdist(align,'hamming')<theta))));
+            cacca=(pdist(align,metric='hamming')<self.theta)
+            print(cacca.shape)
+            W= (1./(1+np.sum(squareform(cacca),axis=0)))
+            print(W.shape)
+        self.Meff=np.sum(W)
 
-    self.Pij_true = zeros(self.N,self.N,q,q)
-    self.Pi_true = zeros(self.N,q)
+        self.Pij_true = np.zeros((self.N,self.N,q,q))
+        self.Pi_true = np.zeros((self.N,q))
+        import time
+####### this is the original way of doing it but mine is faster
+#        t0=time.time()
+#        for j in range(self.M):
+#            for i in range(self.N):
+#                self.Pi_true[i,align[j,i]] = self.Pi_true[i,align[j,i]] + W[j]
+#        self.Pi_true = self.Pi_true/self.Meff
+#        print(self.Pi_true,time.time()-t0)
+############################################
+########## this way is x10 faster
+        self.Pi_true=np.zeros((self.N,q))
+        #        for i in range(self.N):
+        t0=time.time()
+        for a in range(q):
+            self.Pi_true[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
+            #            Pi_true[:,align[j,:]]+=W[j]
+        self.Pi_true/=self.Meff
+##############################
+#        print(Pi_true,time.time()-t0)
+#        print(np.allclose(self.Pi_true,Pi_true))
 
-    align=self.aligment.Z
-    for j in range(self.M):
-        for i in range(self.N):
-            self.Pi_true[i,align[j,i]] = self.Pi_true[i,align[j,i]] + W[j]
+#        t0=time.time()
+###### this is the original way but mine is faster (at least for the alignment sizes I'm dealing with (700x500)
+#        for l in range(self.M):
+#            for i in range(self.N-1):
+#                for j in range(i+1,self.N):
+#                    self.Pij_true[i,j,align[l,i],align[l,j]] = self.Pij_true[i,j,align[l,i],align[l,j]] + W[l]
+#                    # self.Pij_true[j,i,align[l,j],align[l,i]] = self.Pij_true[i,j,align[l,i],align[l,j]] ### no sense in doing this here. I can simmetrize later
+#        self.Pij_true+=np.transpose(self.Pij_true,axes=(1,0,3,2))
+#        self.Pij_true = self.Pij_true/self.Meff
+#
+#        ### I think the following triple loop can be simplyfied a lot...
+#        scra = np.eye(q);
+#        for i in range(self.N):
+#            for alpha in range(q):
+#                for beta in range(q):
+#                    self.Pij_true[i,i,alpha,beta] = self.Pi_true[i,alpha] * scra[alpha,beta]
+#        ###
+#        print(time.time()-t0)
+#####################################33
+        self.Pij_true=np.zeros((self.N,self.N,q,q))
+        #t0=time.time()
+        for a in range(q):
+            for b in range(q):
+                self.Pij_true[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
+        self.Pij_true = self.Pij_true/self.Meff
+        #print(time.time()-t0)
+        #print(np.allclose(self.Pij_true,Pij_true))
+        
 
-    self.Pi_true = self.Pi_true/self.Meff
-
-    for l in range(self.M):
-        for i in range(self.N-1):
-            for j in range(i,selfN):
-                self.Pij_true[i,j,align[l,i],align[l,j]] = self.Pij_true[i,j,align[l,i],align[l,j]] + W[l]
-                self.Pij_true[j,i,align[l,j],align[l,i]] = self.Pij_true[i,j,align[l,i],align[l,j]]
-
-    self.Pij_true = self.Pij_true/self.Meff
-    
-    scra = np.eye(q,q);
-    for i in range(self.N):
-        for alpha in range(q):
-            for beta in range(q):
-                self.Pij_true[i,i,alpha,beta] = Pi_true[i,alpha] * scra[alpha,beta]
-    
 #    return Pij_true,Pi_true,Meff
 
 ###
@@ -110,9 +145,9 @@ def Compute_True_Frequencies(self):
 ### now this is done via the class Alignment (see support_functions.py)
 
     
-def Compute_True_Frequencies(align,M,N,q,theta):
-    """Computes reweighted frequency counts"""
-    return Pij_true,Pi_true,Meff
+#def Compute_True_Frequencies(align,M,N,q,theta):
+#    """Computes reweighted frequency counts"""
+#    return Pij_true,Pi_true,Meff
 
 
 def Compute_Results(Pij,Pi,Pij_true,Pi_true,invC,N,q,fp):
