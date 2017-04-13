@@ -143,7 +143,7 @@ function [Pij_true,Pi_true,Meff] = Compute_True_Frequencies(align,M,N,q,theta)
                 Pij_true(i,i,alpha,beta) = Pi_true(i,alpha) * scra(alpha,beta);
             end
         end
-    end
+    end    
 end
 
 function x=letter2number(a)

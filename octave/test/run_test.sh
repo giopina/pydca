@@ -1,6 +1,7 @@
 {
 echo 'running octave script'
 cat <<EOF >tmp_script.m
+addpath("../")
 dca('stripped_286.afa_filtered200','test.out')
 EOF
 octave tmp_script.m >log 2>err

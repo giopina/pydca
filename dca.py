@@ -131,6 +131,7 @@ class DCA:
         self.Pij_true = self.Pij_true/self.Meff
         #print(time.time()-t0)
         #print(np.allclose(self.Pij_true,Pij_true))
+            
         
 
 #    return Pij_true,Pi_true,Meff
