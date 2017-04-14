@@ -55,22 +55,24 @@ class DCA:
     
     def __init__(self,inputfile,pseudocount_weight=0.5,theta=0.1):
         """Constructor of the class DCA"""
-        self.pseudocount_weight=pseudocount_weight
-        self.theta=theta
+        self.pseudocount_weight=pseudocount_weight # relative weight of pseudo count
+        self.theta=theta # threshold for sequence id in reweighting
 
         fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
         self.alignment=sf.Alignment(fasta_list)
         self.N=self.alignment.N
         self.M=self.alignment.M
-        
+        self.q=self.alignment.q
+        print("compute true frequencies...")
         self.Compute_True_Frequencies()
+        print("add pseudocounts")
+        self.with_pc()
 
     def Compute_True_Frequencies(self):
         """Computes reweighted frequency counts"""
         ### TODO: this still has to be checked and tested
         from scipy.spatial.distance import pdist
         from scipy.spatial.distance import squareform
-        q=self.alignment.q
         W = np.ones(self.M)
         align=self.alignment.Z
         if self.theta > 0.0 :
@@ -81,8 +83,8 @@ class DCA:
             print(W.shape)
         self.Meff=np.sum(W)
 
-        self.Pij_true = np.zeros((self.N,self.N,q,q))
-        self.Pi_true = np.zeros((self.N,q))
+        self.Pij_true = np.zeros((self.N,self.N,self.q,self.q))
+        self.Pi_true = np.zeros((self.N,self.q))
         import time
 ####### this is the original way of doing it but mine is faster
 #        t0=time.time()
@@ -93,10 +95,10 @@ class DCA:
 #        print(self.Pi_true,time.time()-t0)
 ############################################
 ########## this way is x10 faster
-        self.Pi_true=np.zeros((self.N,q))
+        self.Pi_true=np.zeros((self.N,self.q))
         #        for i in range(self.N):
-        t0=time.time()
-        for a in range(q):
+#        t0=time.time()
+        for a in range(self.q):
             self.Pi_true[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
             #            Pi_true[:,align[j,:]]+=W[j]
         self.Pi_true/=self.Meff
@@ -123,16 +125,26 @@ class DCA:
 #        ###
 #        print(time.time()-t0)
 #####################################33
-        self.Pij_true=np.zeros((self.N,self.N,q,q))
+        self.Pij_true=np.zeros((self.N,self.N,self.q,self.q))
         #t0=time.time()
-        for a in range(q):
-            for b in range(q):
+        for a in range(self.q):
+            for b in range(self.q):
                 self.Pij_true[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
         self.Pij_true = self.Pij_true/self.Meff
         #print(time.time()-t0)
         #print(np.allclose(self.Pij_true,Pij_true))
             
-        
+    def with_pc(self):
+        """Adds pseudocounts"""
+        self.Pij = (1.-self.pseudocount_weight)*self.Pij_true +\
+                   self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
+        self.Pi = (1.-self.pseudocount_weight)*self.Pi_true +\
+                  self.pseudocount_weight/self.q*np.ones((self.N,self.q))
+        Pij=np.array(self.Pij)
+        scra = np.eye(self.q)
+        for i in range(self.N):
+            self.Pij[i,i,:,:] = (1.-self.pseudocount_weight)*self.Pij_true[i,i,:,:] +\
+                            self.pseudocount_weight/self.q*scra
 
 #    return Pij_true,Pi_true,Meff
 
@@ -154,9 +166,9 @@ class DCA:
 def Compute_Results(Pij,Pi,Pij_true,Pi_true,invC,N,q,fp):
     """Computes and prints the mutual and direct informations"""
 
-def with_pc(Pij_true,Pi_true,pseudocount_weight,N,q):
-    """Adds pseudocounts"""
-    return Pij,Pi
+#def with_pc(Pij_true,Pi_true,pseudocount_weight,N,q):
+#    """Adds pseudocounts"""
+#    return Pij,Pi
 
 def Compute_C(Pij,Pi,N,q):
     """Computes correlation matrix"""
