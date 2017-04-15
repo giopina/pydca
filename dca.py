@@ -195,7 +195,8 @@ class DCA:
                 W_mf=np.ones((self.q,self.q))
                 W_mf[:-1,:-1]= np.exp( -self.invC[i,:,j,:] ) #self.ReturnW(i,j);                
                 DI_mf_pc = self.bp_link(i,j,W_mf);
-                fh.write('%d %d %g %g\n'%(i, j, MI_true, DI_mf_pc))
+                fh.write('%d %d %g %g '%(i, j, MI_true, DI_mf_pc))
+                fh.write('\n')
         fh.close()
             
     def calculate_mi(self,i,j):
@@ -232,9 +233,9 @@ class DCA:
         mu2 = np.ones((1,self.q))/self.q
         pi = self.Pi[i,:]
         pj = self.Pi[j,:]
-        #print(mu1.shape,W.shape,pi.shape)
+
         while ( diff > epsilon ):
-            ### TODO: add a counter and a maxiter parameter!
+            ### TODO: add a counter and a maxiter parameter?
             scra1 = np.dot(mu2, W.T)
             scra2 = np.dot(mu1, W)
             new1 = pi/scra1
@@ -242,31 +243,26 @@ class DCA:
             new2 = pj/scra2
             new2 /= np.sum(new2)
 
-            ### TODO: check this diff. I'm not sure I'm doing the right max
             diff = max( (np.abs( new1-mu1 )).max(), (np.abs( new2-mu2 )).max() )
-
             mu1 = new1
             mu2 = new2
-        #print(mu1)
+        if i==0 and j==2:
+            print('### scra1',scra1)
+            print('### scra2',scra2)
+            print('### diff',diff)
+
         return mu1,mu2
 
     def compute_di(self,i,j,W, mu1,mu2):
         """computes direct information"""
         tiny = 1.0e-100
-        #Pdir = W*(mu1[np.newaxis,:]*mu2[:,np.newaxis])
         Pdir = W*np.dot(mu1.T,mu2)
         Pdir = Pdir / np.sum(Pdir)
-        #print(Pdir.shape)
-        Pfac = self.Pi[i,:][np.newaxis,:]*self.Pi[j,:][:,np.newaxis]
-        #print(Pfac.shape)
-        ### why trace? Shouldn't it be the sum over all elements?
+        Pfac = self.Pi[i,:][:,np.newaxis]*self.Pi[j,:][np.newaxis,:]
+        ### TODO why trace? Shouldn't it be the sum over all elements?
         DI = np.trace(\
                       np.dot(Pdir.T , np.log((Pdir+tiny)/(Pfac+tiny)) ) \
         )
-#        DI = np.trace(\
-#                    Pdir[np.newaxis,:]*\
-#                      np.log( (Pdir+tiny)/(Pfac+tiny) )\
-#            )
         
         return DI
 
