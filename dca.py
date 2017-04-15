@@ -1,33 +1,18 @@
 # Direct Coupling Analysis (DCA)
 #
-# function dca(inputfile , outputfile)
 # 
-# INPUTS: 
-#   inputfile  - file containing the FASTA alignment
-#   outputfile - file for dca results. The file is composed by N(N-1)/2 
-#                (N = length of the sequences) rows and 4 columns: 
-#                residue i (column 1), residue j (column 2),
-#                MI(i,j) (Mutual Information between i and j), and 
-#                DI(i,j) (Direct Information between i and j).
-#                Note: all insert columns are removed from the alignment.
-#
 # SOME RELEVANT VARIABLES:
-#   N        number of residues in each sequence (no insert)
-#   M        number of sequences in the alignment
-#   Meff     effective number of sequences after reweighting
-#   q        equal to 21 (20 aminoacids + 1 gap)
-#   align    M x N matrix containing the alignmnent
-#   Pij_true N x N x q x q matrix containing the reweigthed frequency
-#            counts.
-#   Pij      N x N x q x q matrix containing the reweighted frequency 
-#            counts with pseudo counts.
-#   C        N(q-1) x N(q-1) matrix containing the covariance matrix.
+#   N          number of residues in each sequence (no insert)
+#   M          number of sequences in the alignment
+#   Meff       effective number of sequences after reweighting
+#   q          equal to 21 (20 aminoacids + 1 gap)
+#   alignment  M x N matrix containing the alignmnent
+#   Pij_true   N x N x q x q matrix containing the reweigthed frequency
+#              counts.
+#   Pij        N x N x q x q matrix containing the reweighted frequency 
+#              counts with pseudo counts.
+#   C          N x (q-1) x N x (q-1) matrix containing the covariance matrix.
 #
-#
-# Copyright for this implementation: 
-#             2011/12 - Andrea Pagnani and Martin Weigt
-#                       andrea.pagnani@gmail.com 
-#                       martin.weigt@upmc.fr
 # 
 # Permission is granted for anyone to copy, use, or modify this
 # software and accompanying documents for any uncommercial
@@ -80,7 +65,6 @@ class DCA:
         W = np.ones(self.M)
         align=self.alignment.Z
         if self.theta > 0.0 :
-            #   W = (1./(1+sum(squareform(pdist(align,'hamming')<theta))));
             cacca=(pdist(align,metric='hamming')<self.theta)
             print(cacca.shape)
             W= (1./(1+np.sum(squareform(cacca),axis=0)))
@@ -89,59 +73,19 @@ class DCA:
 
         self.Pij_true = np.zeros((self.N,self.N,self.q,self.q))
         self.Pi_true = np.zeros((self.N,self.q))
-        import time
-####### this is the original way of doing it but mine is faster
-#        t0=time.time()
-#        for j in range(self.M):
-#            for i in range(self.N):
-#                self.Pi_true[i,align[j,i]] = self.Pi_true[i,align[j,i]] + W[j]
-#        self.Pi_true = self.Pi_true/self.Meff
-#        print(self.Pi_true,time.time()-t0)
-############################################
-########## this way is x10 faster
-        self.Pi_true=np.zeros((self.N,self.q))
-        #        for i in range(self.N):
-#        t0=time.time()
+
         for a in range(self.q):
             self.Pi_true[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
-            #            Pi_true[:,align[j,:]]+=W[j]
         self.Pi_true/=self.Meff
-##############################
-#        print(Pi_true,time.time()-t0)
-#        print(np.allclose(self.Pi_true,Pi_true))
 
-#        t0=time.time()
-###### this is the original way but mine is faster (at least for the alignment sizes I'm dealing with (700x500)
-#        for l in range(self.M):
-#            for i in range(self.N-1):
-#                for j in range(i+1,self.N):
-#                    self.Pij_true[i,j,align[l,i],align[l,j]] = self.Pij_true[i,j,align[l,i],align[l,j]] + W[l]
-#                    # self.Pij_true[j,i,align[l,j],align[l,i]] = self.Pij_true[i,j,align[l,i],align[l,j]] ### no sense in doing this here. I can simmetrize later
-#        self.Pij_true+=np.transpose(self.Pij_true,axes=(1,0,3,2))
-#        self.Pij_true = self.Pij_true/self.Meff
-#
-#        ### I think the following triple loop can be simplyfied a lot...
-#        scra = np.eye(q);
-#        for i in range(self.N):
-#            for alpha in range(q):
-#                for beta in range(q):
-#                    self.Pij_true[i,i,alpha,beta] = self.Pi_true[i,alpha] * scra[alpha,beta]
-#        ###
-#        print(time.time()-t0)
-#####################################33
-        self.Pij_true=np.zeros((self.N,self.N,self.q,self.q))
-        #t0=time.time()
         for a in range(self.q):
             for b in range(self.q):
                 self.Pij_true[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
         self.Pij_true = self.Pij_true/self.Meff
-        #print(time.time()-t0)
-        #print(np.allclose(self.Pij_true,Pij_true))
             
     def with_pc(self):
         """Adds pseudocounts"""
         ### TODO: do we need to store both Pij_true and Pij?
-        ### TODO: not tested
         self.Pij = (1.-self.pseudocount_weight)*self.Pij_true +\
                    self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
         self.Pi = (1.-self.pseudocount_weight)*self.Pi_true +\
@@ -154,25 +98,8 @@ class DCA:
 
     def Compute_C(self):
         """Computes correlation matrix"""
-        ### TODO: not tested
         ### Remember remember... I'm excluding A,B = q (see PNAS SI, pg 2, column 2)
 
-        ### che e' sta roba?? suppongo si possa fare meglio con qualche reshape e operazioni fra array...
-        #self.C=np.zeros((self.N*(self.q-1),self.N*(self.q-1)))
-        #for i in range(self.N):
-        #    for j in range(self.N):
-        #        for alpha in range(self.q-1):
-        #            for beta in range(self.q-1):
-        #                self.C[self.mapkey(i,alpha),self.mapkey(j,beta)] = self.Pij[i,j,alpha,beta] - self.Pi[i,alpha]*Pi[j,beta]
-        ##############################
-        #    #def mapkey(self,i,alpha):
-        #    #    A = (self.q-1)*i+alpha
-        #    #    return A
-        ##############################
-
-        ### mi ghe provo
-#        cacca=self.Pi[:,np.newaxis,:,np.newaxis]*self.Pi[np.newaxis,:,np.newaxis,:]
-#        print(cacca.shape,self.Pij.shape)
         self.C=np.transpose(\
                             self.Pij[:,:,:-1,:-1] -\
                             self.Pi[:,np.newaxis,:-1,np.newaxis]*\
@@ -181,7 +108,6 @@ class DCA:
         ### NB: the order of the indexes in C is different from Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
         from numpy.linalg import tensorinv
         self.invC=tensorinv(self.C)
-
 
     def Compute_Results(self,filename):
         """Computes and prints the mutual and direct informations"""
@@ -265,54 +191,3 @@ class DCA:
         )
         
         return DI
-
-        
-###
-### Here I'm just copying the headers of the functions defined in dca.m
-###
-
-#def return_alignment(inputfile):
-#    """Reads alignment from inputfile, removes insters and converts into numbers"""
-#    return N,M,q,Z
-### now this is done via the class Alignment (see support_functions.py)
-    
-#def Compute_True_Frequencies(align,M,N,q,theta):
-#    """Computes reweighted frequency counts"""
-#    return Pij_true,Pi_true,Meff
-
-#def with_pc(Pij_true,Pi_true,pseudocount_weight,N,q):
-#    """Adds pseudocounts"""
-#    return Pij,Pi
-
-#def Compute_Results(Pij,Pi,Pij_true,Pi_true,invC,N,q,fp):
-#    """Computes and prints the mutual and direct informations"""
-
-#def Compute_C(Pij,Pi,N,q):
-#    """Computes correlation matrix"""
-#    return C
-
-#def mapkey(i,alpha,q):
-#    # not sure what this is doing
-#    return A
-
-#def calculate_mi(i,j,P2,P1,q):
-#    """Computes mutual information between columns i and j"""
-#    return M,s1,s2
-
-#def ReturnW(C,i,j,q):
-#    """Extracts coupling matrix for columns i and j"""
-#    return W
-
-#def bp_link(i,j,W,P1,q):
-#    """Computes direct information"""
-#    return DI
-
-#def compute_mu(i,j,W,P1,q):
-#    # not sure what this is doing
-#    return mu1,mu2
-
-#def compute_di(i,j,W, mu1,mu2, Pia):
-#    """computes direct information"""
-#    return DI
-
-
