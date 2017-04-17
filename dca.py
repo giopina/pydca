@@ -199,11 +199,10 @@ class DCA:
         )
         return DI
 
-    def get_ordered_di(self,k=None,offset=4):
+    def get_ordered_di(self,k_pairs=None,offset=4):
         """Sort the pairs by their direct information"""
-        if k==None:
-            k=self.N*2
-        
+        if k_pairs==None:
+            k_pairs=self.N*2
         faraway=np.triu_indices(self.N,k=offset)
-        self.di_order=faraway[np.argsort(self.direct_information[faraway])]
-        return self.direct_information[di_order[:k]] ### TODO: this is not creating a copy. Be careful
+        self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
+        return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
