@@ -121,8 +121,10 @@ class Alignment:
                                    'Y':20,\
                                    'X':0,\
                 }
+                self.numer2letter=self.letter2numer.keys()[:-1] # NB: 0 will always be backmapped to "-"
                 
                 self.M=len(fasta_list) # this is the number of sequences
+                
                 self.sequences=[seq['sequence'] for seq in fasta_list] # sequences
                 self.names=[seq['title'] for seq in fasta_list] # names of sequences can be useful in the prostprocessing
                 self.__strip()
@@ -130,12 +132,16 @@ class Alignment:
                 
         def __strip(self):
                 """Fuck this. I'm going to be a stripper"""
-                this_name='stripper'
+                this_name='stripper'                
                 self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*"
+                #stripped_seqs=[np.cumsu[i!='.' and i!='-' for i in stringa] for stringa in self.sequences] ### this is slower by a factor x2
+                self.strip2align=[np.where([i!='.' and i!='-' for i in stringa]) for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                self.align2strip=[np.cumsum([i!='.' and i!='-' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+
                 if len(set([len(s) for s in self.stripped_seqs]))>1:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
 
                 self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as numbers
 
-                self.q=np.max(self.Z)+1 # this is really not necessary, but I'm copying the octave code
+                self.q=np.max(self.Z)+1 # for proteins is always 21, but we can keep it general in case somebody wants to use RNA
