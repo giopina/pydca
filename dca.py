@@ -11,7 +11,7 @@
 #              counts.
 #   Pij        N x N x q x q matrix containing the reweighted frequency 
 #              counts with pseudo counts.
-#   C          N x (q-1) x N x (q-1) matrix containing the covariance matrix.
+#   invC          N x (q-1) x N x (q-1) inverse of the covariance matrix.
 #
 # 
 # Permission is granted for anyone to copy, use, or modify this
@@ -98,17 +98,16 @@ class DCA:
                             self.pseudocount_weight/self.q*scra
 
     def __comp_C(self):
-        """Computes correlation matrix"""
+        """Computes correlation matrix and its inverse"""
         ### Remember remember... I'm excluding A,B = q (see PNAS SI, pg 2, column 2)
-
-        self.C=np.transpose(\
+        C=np.transpose(\
                             self.Pij[:,:,:-1,:-1] -\
                             self.Pi[:,np.newaxis,:-1,np.newaxis]*\
                             self.Pi[np.newaxis,:,np.newaxis,:-1],\
                             axes=(0,2,1,3))
         ### NB: the order of the indexes in C is different from Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
         from numpy.linalg import tensorinv
-        self.invC=tensorinv(self.C)
+        self.invC=tensorinv(C)
 
     def __comp_MI(self):
         """Computes the mutual information"""
