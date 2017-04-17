@@ -7,3 +7,4 @@ test/report.txt
 test/tmp*
 *log
 __pycache__
+*pyc

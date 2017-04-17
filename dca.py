@@ -35,10 +35,9 @@ import support_functions as sf
 
 class DCA:
     """Class DCA:
-    direct coupling analysis
-    I don't know yet how it will work"""
+    direct coupling analysis"""
     
-    def __init__(self,inputfile,pseudocount_weight=0.5,theta=0.1):
+    def __init__(self,inputfile,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True):
         """Constructor of the class DCA"""
         self.pseudocount_weight=pseudocount_weight # relative weight of pseudo count
         self.theta=theta # threshold for sequence id in reweighting
@@ -49,16 +48,19 @@ class DCA:
         self.M=self.alignment.M
         self.q=self.alignment.q
         print("compute true frequencies...")
-        self.Compute_True_Frequencies()
+        self.__comp_true_freq()
         print("add pseudocounts")
-        self.with_pc()
+        self.__with_pc()
         print("compute C")
-        self.Compute_C()
+        self.__comp_C()
         print("compute results")
-        self.Compute_Results('prova-DI.dat')
+        if get_MI:
+            self.__comp_MI()
+        if get_DI:
+            self.__comp_DI()
         print("Done!")
 
-    def Compute_True_Frequencies(self):
+    def __comp_true_freq(self):
         """Computes reweighted frequency counts"""
         from scipy.spatial.distance import pdist
         from scipy.spatial.distance import squareform
@@ -83,7 +85,7 @@ class DCA:
                 self.Pij_true[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
         self.Pij_true = self.Pij_true/self.Meff
             
-    def with_pc(self):
+    def __with_pc(self):
         """Adds pseudocounts"""
         ### TODO: do we need to store both Pij_true and Pij?
         self.Pij = (1.-self.pseudocount_weight)*self.Pij_true +\
@@ -96,7 +98,7 @@ class DCA:
             self.Pij[i,i,:,:] = (1.-self.pseudocount_weight)*self.Pij_true[i,i,:,:] +\
                             self.pseudocount_weight/self.q*scra
 
-    def Compute_C(self):
+    def __comp_C(self):
         """Computes correlation matrix"""
         ### Remember remember... I'm excluding A,B = q (see PNAS SI, pg 2, column 2)
 
@@ -109,49 +111,60 @@ class DCA:
         from numpy.linalg import tensorinv
         self.invC=tensorinv(self.C)
 
-    def Compute_Results(self,filename):
-        """Computes and prints the mutual and direct informations"""
-        fh=open(filename,'w')
+    def __comp_MI(self):
+        """Computes the mutual information"""
+        ### TODO: there should be a smarter way of storing and accessing these symmetric matrices using only half the space
+        self.mutual_information=np.zeros((self.N,self.N))
         for i in range(self.N-1):
             for j in range(i+1,self.N):
                 # mutual information
-                MI_true = self.calculate_mi(i,j);
-                
-                # direct information from mean-field
-                W_mf=np.ones((self.q,self.q))
-                W_mf[:-1,:-1]= np.exp( -self.invC[i,:,j,:] ) #self.ReturnW(i,j);                
-                DI_mf_pc = self.bp_link(i,j,W_mf);
-                fh.write('%d %d %g %g '%(i, j, MI_true, DI_mf_pc))
-                fh.write('\n')
-        fh.close()
+                self.mutual_information[i,j] = self.__calc_mi(i,j)
+        self.mutual_information+=self.mutual_information.T
+
             
-    def calculate_mi(self,i,j):
+    def __calc_mi(self,i,j):
         """Computes mutual information between columns i and j"""
         ### Here apparently I'm using Pij_true
         ### Apparently, also I do not need this useless Mutual information...
         ### Even more apparently, two of the three output of this function are not even used in the matlab code (s1,s2, aka si_true, sj_true)....
         M = 0.
+        ### TODO: this loop can probably be rewritten in a smart "numpy" way
         for alpha in range(self.q):
             for beta in range(self.q):
                 if self.Pij_true[i,j,alpha,beta]>0:
                     M = M + self.Pij_true[i,j,alpha, beta]*np.log(self.Pij_true[i,j, alpha, beta] / self.Pi_true[i,alpha]/self.Pi_true[j,beta])
-                        
-            #s1=0.
-            #s2=0.
-            #for alpha in range(q):
-            #    if( self.Pi_true[i,alpha]>0 ):
-            #        s1 = s1 - self.Pi_true[i,alpha] * np.log(self.Pi_true[i,alpha])
-            #    if( self.Pi_true[j,alpha]>0 ):
-            #        s2 = s2 - self.Pi_true[j,alpha] * np.log(self.Pi_true[j,alpha])
-        return M#,s1,s2
-
-    def bp_link(self,i,j,W_mf):
+        return M
+    
+    def Print_Results(self,filename):
+        fh=open(filename,'w')
+        for i in range(self.N-1):
+            for j in range(i+1,self.N):
+                fh.write('%d %d '%(i, j))                
+                fh.write('%g '%self.mutual_information)
+                fh.write('%g '%self.direct_information)
+                fh.write('\n')
+        fh.close()
+          
+    def __comp_DI(self):
+        """Computes Direct Information"""
+        ### TODO: implement other DCAmethods
+        ### TODO: there should be a smarter way of storing and accessing these symmetric matrices using only half the space
+        self.direct_information=np.zeros((self.N,self.N))
+        for i in range(self.N-1):
+            for j in range(i+1,self.N):
+                # direct information from mean-field
+                self.direct_information[i,j] = self.__bp_link(i,j)
+        self.direct_information+=self.direct_information.T
+        
+    def __bp_link(self,i,j):
         """Computes direct information"""
-        mu1, mu2 = self.compute_mu(i,j,W_mf);
-        DI = self.compute_di(i,j,W_mf, mu1,mu2);
+        W_mf=np.ones((self.q,self.q))
+        W_mf[:-1,:-1]= np.exp( -self.invC[i,:,j,:] )
+        mu1, mu2 = self.__comp_mu(i,j,W_mf);
+        DI = self.__comp_di(i,j,W_mf, mu1,mu2);
         return DI
     
-    def compute_mu(self,i,j,W):
+    def __comp_mu(self,i,j,W):
         ### not sure what this is doing
         epsilon=1e-4
         diff =1.0
@@ -172,14 +185,9 @@ class DCA:
             diff = max( (np.abs( new1-mu1 )).max(), (np.abs( new2-mu2 )).max() )
             mu1 = new1
             mu2 = new2
-        if i==0 and j==2:
-            print('### scra1',scra1)
-            print('### scra2',scra2)
-            print('### diff',diff)
-
         return mu1,mu2
 
-    def compute_di(self,i,j,W, mu1,mu2):
+    def __comp_di(self,i,j,W, mu1,mu2):
         """computes direct information"""
         tiny = 1.0e-100
         Pdir = W*np.dot(mu1.T,mu2)
@@ -189,5 +197,13 @@ class DCA:
         DI = np.trace(\
                       np.dot(Pdir.T , np.log((Pdir+tiny)/(Pfac+tiny)) ) \
         )
-        
         return DI
+
+    def get_ordered_di(self,k=None,offset=4):
+        """Sort the pairs by their direct information"""
+        if k==None:
+            k=self.N*2
+        
+        faraway=np.triu_indices(self.N,k=offset)
+        self.di_order=faraway[np.argsort(self.direct_information[faraway])]
+        return self.direct_information[di_order[:k]] ### TODO: this is not creating a copy. Be careful
