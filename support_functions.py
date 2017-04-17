@@ -137,17 +137,11 @@ class Alignment:
         def __strip(self):
                 """Fuck this. I'm going to be a stripper"""
                 this_name='stripper'
-                #import time
-                #t0=time.time()
-                self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*"
-                #t1=time.time()
-                #stripped_seqs=[''.join([i for i in stringa if i!='.' or i!='*' or i.islower()]) for stringa in self.sequences] ### this is slower by a factor x2
-                #for s1,s2 in zip(self.stripped_seqs,stripped_seqs):
-                #        if s1!=s2:
-                #                print('cacca')
+                self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*" ### TODO: do we really need to do search for . and * for all sequences??
+                ### TODO: these two lists of lists are probably redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
                 self.strip2align=[np.where([i!='.' or i!='*' or i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
                 self.align2strip=[np.cumsum([i!='.' or i!='*' or i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
-                #print(t1-t0,time.time()-t1)
+
                 if len(set([len(s) for s in self.stripped_seqs]))>1:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences

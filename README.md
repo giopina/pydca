@@ -25,7 +25,7 @@ remember we may want to exclude neighbours on the chain (up to 4 residues) when 
 
 - efficiency: analysis of the large sample dataset took 3 hours on shark.imp.fu-berlin.de with the octave code (but then, maybe matlab is faster). with pydca it takes a couple of minutes
 
-- memory: storing all the matrices (Pij, Z, takes a lot of memory (2GB for 478 residues of stripped_286). Does it really make sense to store them after the DI is computed??
+- memory: storing all the matrices (Pij, C, take a lot of memory (2GB for 478 residues of stripped_286). Does it really make sense to store them after the DI is computed??
 
 - Would be nice to be able to use it for different purposes (Granata et al., etc) and maybe also have different options for the DCA implementation (mfDCA, plmDCA, etc.)
 
