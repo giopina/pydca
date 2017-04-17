@@ -105,6 +105,8 @@ class DCA:
                             self.Pi[:,np.newaxis,:-1,np.newaxis]*\
                             self.Pi[np.newaxis,:,np.newaxis,:-1],\
                             axes=(0,2,1,3))
+        del self.Pij
+        #del self.Pi
         ### NB: the order of the indexes in C is different from Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
         from numpy.linalg import tensorinv
         self.invC=tensorinv(C)
@@ -129,8 +131,8 @@ class DCA:
         ### TODO: this loop can probably be rewritten in a smart "numpy" way
         for alpha in range(self.q):
             for beta in range(self.q):
-                if self.Pij_true[i,j,alpha,beta]>0:
-                    M = M + self.Pij_true[i,j,alpha, beta]*np.log(self.Pij_true[i,j, alpha, beta] / self.Pi[i,alpha]/self.Pi[j,beta])
+                if self.Pij[i,j,alpha,beta]>0:
+                    M = M + self.Pij[i,j,alpha, beta]*np.log(self.Pij[i,j, alpha, beta] / self.Pi[i,alpha]/self.Pi[j,beta])
         return M
     
     def Print_Results(self,filename):
@@ -153,6 +155,7 @@ class DCA:
                 # direct information from mean-field
                 self.direct_information[i,j] = self.__bp_link(i,j)
         self.direct_information+=self.direct_information.T
+        del self.Pi
         
     def __bp_link(self,i,j):
         """Computes direct information"""
