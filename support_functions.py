@@ -121,23 +121,33 @@ class Alignment:
                                    'Y':20,\
                                    'X':0,\
                 }
-                self.numer2letter=self.letter2numer.keys()[:-1] # NB: 0 will always be backmapped to "-"
+                self.numer2letter=list(self.letter2numer.keys())[:-1] # NB: 0 will always be backmapped to "-"
                 
                 self.M=len(fasta_list) # this is the number of sequences
                 
                 self.sequences=[seq['sequence'] for seq in fasta_list] # sequences
                 self.names=[seq['title'] for seq in fasta_list] # names of sequences can be useful in the prostprocessing
+
+                self.orig2align=[np.where([i!='-' or i!='.' for i in stringa]) for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                self.align2orig=[np.cumsum([i!='-' or i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                
                 self.__strip()
 
                 
         def __strip(self):
                 """Fuck this. I'm going to be a stripper"""
-                this_name='stripper'                
+                this_name='stripper'
+                #import time
+                #t0=time.time()
                 self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*"
-                #stripped_seqs=[np.cumsu[i!='.' and i!='-' for i in stringa] for stringa in self.sequences] ### this is slower by a factor x2
-                self.strip2align=[np.where([i!='.' and i!='-' for i in stringa]) for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                self.align2strip=[np.cumsum([i!='.' and i!='-' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
-
+                #t1=time.time()
+                #stripped_seqs=[''.join([i for i in stringa if i!='.' or i!='*' or i.islower()]) for stringa in self.sequences] ### this is slower by a factor x2
+                #for s1,s2 in zip(self.stripped_seqs,stripped_seqs):
+                #        if s1!=s2:
+                #                print('cacca')
+                self.strip2align=[np.where([i!='.' or i!='*' or i.islower() for i in stringa]) for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                self.align2strip=[np.cumsum([i!='.' or i!='*' or i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                #print(t1-t0,time.time()-t1)
                 if len(set([len(s) for s in self.stripped_seqs]))>1:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
