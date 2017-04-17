@@ -49,14 +49,15 @@ class DCA:
         self.q=self.alignment.q
         print("compute true frequencies...")
         self.__comp_true_freq()
+        if get_MI:
+            print("compute MI")
+            self.__comp_MI()
         print("add pseudocounts")
         self.__with_pc()
         print("compute C")
         self.__comp_C()
-        print("compute results")
-        if get_MI:
-            self.__comp_MI()
         if get_DI:
+            print("compute DI")
             self.__comp_DI()
         print("Done!")
 
@@ -68,34 +69,32 @@ class DCA:
         align=self.alignment.Z
         if self.theta > 0.0 :
             cacca=(pdist(align,metric='hamming')<self.theta)
-            print(cacca.shape)
             W= (1./(1+np.sum(squareform(cacca),axis=0)))
-            print(W.shape)
         self.Meff=np.sum(W)
 
-        self.Pij_true = np.zeros((self.N,self.N,self.q,self.q))
-        self.Pi_true = np.zeros((self.N,self.q))
+        self.Pij = np.zeros((self.N,self.N,self.q,self.q))
+        self.Pi = np.zeros((self.N,self.q))
 
         for a in range(self.q):
-            self.Pi_true[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
-        self.Pi_true/=self.Meff
+            self.Pi[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
+        self.Pi/=self.Meff
 
         for a in range(self.q):
             for b in range(self.q):
-                self.Pij_true[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
-        self.Pij_true = self.Pij_true/self.Meff
+                self.Pij[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
+        self.Pij = self.Pij/self.Meff
             
     def __with_pc(self):
         """Adds pseudocounts"""
-        ### TODO: do we need to store both Pij_true and Pij?
-        self.Pij = (1.-self.pseudocount_weight)*self.Pij_true +\
-                   self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
-        self.Pi = (1.-self.pseudocount_weight)*self.Pi_true +\
+        self.Pi = (1.-self.pseudocount_weight)*self.Pi +\
                   self.pseudocount_weight/self.q*np.ones((self.N,self.q))
-        Pij=np.array(self.Pij)
+        ### TODO: do we need to store both Pij_true and Pij?
+        Pij_diag=self.Pij[range(self.N),range(self.N),:,:]
+        self.Pij = (1.-self.pseudocount_weight)*self.Pij +\
+                   self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
         scra = np.eye(self.q)
         for i in range(self.N):
-            self.Pij[i,i,:,:] = (1.-self.pseudocount_weight)*self.Pij_true[i,i,:,:] +\
+            self.Pij[i,i,:,:] = (1.-self.pseudocount_weight)*Pij_diag[i,:,:] +\
                             self.pseudocount_weight/self.q*scra
 
     def __comp_C(self):
@@ -132,7 +131,7 @@ class DCA:
         for alpha in range(self.q):
             for beta in range(self.q):
                 if self.Pij_true[i,j,alpha,beta]>0:
-                    M = M + self.Pij_true[i,j,alpha, beta]*np.log(self.Pij_true[i,j, alpha, beta] / self.Pi_true[i,alpha]/self.Pi_true[j,beta])
+                    M = M + self.Pij_true[i,j,alpha, beta]*np.log(self.Pij_true[i,j, alpha, beta] / self.Pi[i,alpha]/self.Pi[j,beta])
         return M
     
     def Print_Results(self,filename):
