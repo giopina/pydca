@@ -37,13 +37,15 @@ class DCA:
     """Class DCA:
     direct coupling analysis"""
     
-    def __init__(self,inputfile,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True):
+    #def __init__(self,inputfile,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True):
+    def __init__(self,alignment,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True):
         """Constructor of the class DCA"""
         self.pseudocount_weight=pseudocount_weight # relative weight of pseudo count
         self.theta=theta # threshold for sequence id in reweighting
 
-        fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
-        self.alignment=sf.Alignment(fasta_list)
+        #fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
+        #self.alignment=sf.Alignment(fasta_list)
+        self.alignment=alignment
         self.N=self.alignment.N
         self.M=self.alignment.M
         self.q=self.alignment.q
@@ -72,44 +74,44 @@ class DCA:
             W= (1./(1+np.sum(squareform(cacca),axis=0)))
         self.Meff=np.sum(W)
 
-        self.Pij = np.zeros((self.N,self.N,self.q,self.q))
-        self.Pi = np.zeros((self.N,self.q))
+        self.__Pij = np.zeros((self.N,self.N,self.q,self.q))
+        self.__Pi = np.zeros((self.N,self.q))
 
         for a in range(self.q):
-            self.Pi[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
-        self.Pi/=self.Meff
+            self.__Pi[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
+        self.__Pi/=self.Meff
 
         for a in range(self.q):
             for b in range(self.q):
-                self.Pij[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
-        self.Pij = self.Pij/self.Meff
+                self.__Pij[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
+        self.__Pij = self.__Pij/self.Meff
             
     def __with_pc(self):
         """Adds pseudocounts"""
-        self.Pi = (1.-self.pseudocount_weight)*self.Pi +\
+        self.__Pi = (1.-self.pseudocount_weight)*self.__Pi +\
                   self.pseudocount_weight/self.q*np.ones((self.N,self.q))
-        ### TODO: do we need to store both Pij_true and Pij?
-        Pij_diag=self.Pij[range(self.N),range(self.N),:,:]
-        self.Pij = (1.-self.pseudocount_weight)*self.Pij +\
+        ### TODO: do we need to store both __Pij_true and __Pij?
+        Pij_diag=self.__Pij[range(self.N),range(self.N),:,:]
+        self.__Pij = (1.-self.pseudocount_weight)*self.__Pij +\
                    self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
         scra = np.eye(self.q)
         for i in range(self.N):
-            self.Pij[i,i,:,:] = (1.-self.pseudocount_weight)*Pij_diag[i,:,:] +\
+            self.__Pij[i,i,:,:] = (1.-self.pseudocount_weight)*Pij_diag[i,:,:] +\
                             self.pseudocount_weight/self.q*scra
 
     def __comp_C(self):
         """Computes correlation matrix and its inverse"""
         ### Remember remember... I'm excluding A,B = q (see PNAS SI, pg 2, column 2)
         C=np.transpose(\
-                            self.Pij[:,:,:-1,:-1] -\
-                            self.Pi[:,np.newaxis,:-1,np.newaxis]*\
-                            self.Pi[np.newaxis,:,np.newaxis,:-1],\
+                            self.__Pij[:,:,:-1,:-1] -\
+                            self.__Pi[:,np.newaxis,:-1,np.newaxis]*\
+                            self.__Pi[np.newaxis,:,np.newaxis,:-1],\
                             axes=(0,2,1,3))
-        del self.Pij
-        #del self.Pi
-        ### NB: the order of the indexes in C is different from Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
+        del self.__Pij
+        #del self.__Pi
+        ### NB: the order of the indexes in C is different from __Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
         from numpy.linalg import tensorinv
-        self.invC=tensorinv(C)
+        self.__invC=tensorinv(C)
 
     def __comp_MI(self):
         """Computes the mutual information"""
@@ -131,8 +133,8 @@ class DCA:
         ### TODO: this loop can probably be rewritten in a smart "numpy" way
         for alpha in range(self.q):
             for beta in range(self.q):
-                if self.Pij[i,j,alpha,beta]>0:
-                    M = M + self.Pij[i,j,alpha, beta]*np.log(self.Pij[i,j, alpha, beta] / self.Pi[i,alpha]/self.Pi[j,beta])
+                if self.__Pij[i,j,alpha,beta]>0:
+                    M = M + self.__Pij[i,j,alpha, beta]*np.log(self.__Pij[i,j, alpha, beta] / self.__Pi[i,alpha]/self.__Pi[j,beta])
         return M
     
     def Print_Results(self,filename):
@@ -155,12 +157,13 @@ class DCA:
                 # direct information from mean-field
                 self.direct_information[i,j] = self.__bp_link(i,j)
         self.direct_information+=self.direct_information.T
-        del self.Pi
+        del __invC
+        del self.__Pi
         
     def __bp_link(self,i,j):
         """Computes direct information"""
         W_mf=np.ones((self.q,self.q))
-        W_mf[:-1,:-1]= np.exp( -self.invC[i,:,j,:] )
+        W_mf[:-1,:-1]= np.exp( -self.__invC[i,:,j,:] )
         mu1, mu2 = self.__comp_mu(i,j,W_mf);
         DI = self.__comp_di(i,j,W_mf, mu1,mu2);
         return DI
@@ -171,8 +174,8 @@ class DCA:
         diff =1.0
         mu1 = np.ones((1,self.q))/self.q
         mu2 = np.ones((1,self.q))/self.q
-        pi = self.Pi[i,:]
-        pj = self.Pi[j,:]
+        pi = self.__Pi[i,:]
+        pj = self.__Pi[j,:]
 
         while ( diff > epsilon ):
             ### TODO: add a counter and a maxiter parameter?
@@ -193,20 +196,21 @@ class DCA:
         tiny = 1.0e-100
         Pdir = W*np.dot(mu1.T,mu2)
         Pdir = Pdir / np.sum(Pdir)
-        Pfac = self.Pi[i,:][:,np.newaxis]*self.Pi[j,:][np.newaxis,:]
+        Pfac = self.__Pi[i,:][:,np.newaxis]*self.__Pi[j,:][np.newaxis,:]
         ### TODO why trace? Shouldn't it be the sum over all elements?
         DI = np.trace(\
                       np.dot(Pdir.T , np.log((Pdir+tiny)/(Pfac+tiny)) ) \
         )
         return DI
 
-    def get_ordered_di(self,k_pairs=None,offset=4):
+    def get_ordered_di(self,k_pairs=None,offset=4,return_di=False):
         """Sort the pairs by their direct information"""
         if k_pairs==None:
             k_pairs=self.N*2
         faraway=np.triu_indices(self.N,k=offset)
         self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
-        return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+        if return_di:
+            return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
 
 
 def print_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
@@ -224,3 +228,13 @@ def print_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
     plt.plot(range(dca_obj.N),color='black')
     plt.ylim(0,dca_obj.N)
     plt.xlim(0,dca_obj.N)
+
+
+def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1):
+    """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
+    ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
+    fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
+    alignment=sf.Alignment(fasta_list)
+    dca_obj=dca.DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=False,get_DI=True)
+    dca_obj.get_ordered_DI()
+    return dca_obj
