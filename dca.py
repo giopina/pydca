@@ -207,3 +207,20 @@ class DCA:
         faraway=np.triu_indices(self.N,k=offset)
         self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
         return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+
+
+def print_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
+    """Prints the contact maps derived from a DCA object"""
+        #plt.figure(figsize=(8,8))
+        #n_di=1000
+    if n_di==None:
+        n_di=dca_obj.N*2
+    if lower_half:
+        plt.scatter(dca_obj.di_order[:n_di,1],dca_obj.di_order[:n_di,0],\
+                    marker='s',s=3,color=colore)
+    else:
+        plt.scatter(dca_obj.di_order[:n_di,0],dca_obj.di_order[:n_di,1],\
+                    marker='s',s=3,color=colore)
+    plt.plot(range(dca_obj.N),color='black')
+    plt.ylim(0,dca_obj.N)
+    plt.xlim(0,dca_obj.N)
