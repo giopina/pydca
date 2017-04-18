@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 
 def write_log(name, text):
+	""" Quietly writes a log """
         log_filename = name + '.log'
         log_file = open(log_filename, 'w')
         log_file.write(text)
@@ -10,10 +11,12 @@ def write_log(name, text):
         
 
 def header(name):
+	""" Creates a tidy header for logs, with date and time"""
 	return "[" + name + " " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "] "
 
 
 def raise_error(name, text):
+	""" Version of write_log for reporting errors and stopping"""
 	indent = " "*len(header(name))
 	lines = text.split('\n')
 	logmsg = header(name) + lines[0] + '\n'
@@ -24,6 +27,8 @@ def raise_error(name, text):
 
 
 def print_log(name, text, quiet=False):
+	""" Handy function for writing logs on screen and in a log file.
+	You have to give a name to the function you're logging from"""
 	indent = " "*len(header(name))
 	lines = text.split('\n')
 	logmsg = header(name) + lines[0]
@@ -35,12 +40,26 @@ def print_log(name, text, quiet=False):
 
 
 def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nucleicacid=False):
+	""" Basic FASTA parser. 
+	Input: path of a fasta-formatted file
+	Output: list of dictionaries with keys 'title' and 'sequence'
+	Optional flags:
+	    to_upper: writes sequence in uppercase
+	    check_aminoacid: checks if the sequence is composed by FASTA-compliant aminoacid characters
+	    check_nucleicacid: checks if the sequence is composed by FASTA-compliant nucleic acid characters
+	"""
 	this_name = "FASTA_parser"
 
+	# check_aminoacid and check_nucleicacid are mutually exclusive
 	if check_aminoacid and check_nucleicacid:
 		raise_error(this_name, "ERROR: only one out of 'check_aminoacid' and 'check_nucleicacid' options can be active")
 
-	fasta_list = []
+	fasta_list = []   # The list of dictionaries (output)
+
+	# Matches entire non-empty lines composed only by alphabetical characters, hyphens,
+	# asterisks, backslashes and dots. Does not match FASTA titles!
+	fasta_pattern = re.compile('^[A-Za-z\-\*\.\\\\]+$')
+
 	fasta_file = open(fasta_filename, 'r')
 	text = fasta_file.read().split('\n')
 	fasta_file.close()
@@ -51,11 +70,15 @@ def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nu
 	for t_line in text:
 		nl += 1
 		line = t_line.strip()
+		# Standard check for empty lines
 		if not line:
 			there_is_title_line = False
 			continue
-		if not (line[0] == '>' or re.match('^[A-Za-z\-\*\\\\]+$', line)):
+		# If it is not a FASTA line or a FASTA title, stop
+		if not (line[0] == '>' or re.match(fasta_pattern, line)):
 			raise_error(this_name, "ERROR: Line {0} does not respect the FASTA format".format(nl))
+		# If it is a FASTA title, expect only one title, and put the title in the 'title' key of a new entry dict in the main list
+		# If there is no title (just a ">"), make up one
 		if line[0] == '>':
 			if there_is_title_line == False:
 				if len(line) > 1:
@@ -67,7 +90,8 @@ def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nu
 				there_is_title_line = True
 			else:
 				raise_error(this_name, "ERROR: sequence title with no amino acid sequence at line {0}".format(nl))
-		elif re.match('^[A-Za-z\-\*\\\\]+$', line):
+		# If it is a FASTA line, join that line to the 'sequence' key of the latest entry dict in the main list
+		elif re.match(fasta_pattern, line):
 			if not fasta_list or (fasta_list[-1]['sequence'] == '' and not there_is_title_line):
 				raise_error(this_name, "ERROR: there is a string of text not preceded by a title at line {0}".format(nl))
 			if to_upper:
@@ -76,12 +100,12 @@ def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nu
 				fasta_list[-1]['sequence'] += line.strip().replace('\\', '')
 			there_is_title_line = False
 
+	# Optional format checks
 	allowed_characters = None
 	if check_aminoacid:
 		allowed_characters = 'ABCDEFGHIKLMNPQRSTUVWYZXabcdefghiklmnpqrstuvwyzx*-'
 	elif check_nucleicacid:
 		allowed_characters = 'ACGTURYKMSWBDHVNacgturykmswbdhvn-'
-	
 	if allowed_characters:
 		for seq in fasta_list:
 			for lett in seq['sequence']:
