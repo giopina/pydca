@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 
 def write_log(name, text):
-	""" Quietly writes a log """
+        """ Quietly writes a log """
         log_filename = name + '.log'
         log_file = open(log_filename, 'w')
         log_file.write(text)
