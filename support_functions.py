@@ -103,7 +103,7 @@ def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nu
 	# Optional format checks
 	allowed_characters = None
 	if check_aminoacid:
-		allowed_characters = 'ABCDEFGHIKLMNPQRSTUVWYZXabcdefghiklmnpqrstuvwyzx*-'
+		allowed_characters = 'ABCDEFGHIKLMNPQRSTUVWYZXabcdefghiklmnpqrstuvwyzx*.-'
 	elif check_nucleicacid:
 		allowed_characters = 'ACGTURYKMSWBDHVNacgturykmswbdhvn-'
 	if allowed_characters:
