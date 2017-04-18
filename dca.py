@@ -157,7 +157,7 @@ class DCA:
                 # direct information from mean-field
                 self.direct_information[i,j] = self.__bp_link(i,j)
         self.direct_information+=self.direct_information.T
-        del __invC
+        del self.__invC
         del self.__Pi
         
     def __bp_link(self,i,j):
@@ -235,6 +235,9 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1):
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
     fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
     alignment=sf.Alignment(fasta_list)
-    dca_obj=dca.DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=False,get_DI=True)
-    dca_obj.get_ordered_DI()
+    print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
+    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=False,get_DI=True)
+    print(" Effective number of sequences = %d\n"%dca_obj.Meff)
+    dca_obj.get_ordered_di()
+    print("DCA completed")
     return dca_obj
