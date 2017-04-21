@@ -136,16 +136,6 @@ class DCA:
                 if self.__Pij[i,j,alpha,beta]>0:
                     M = M + self.__Pij[i,j,alpha, beta]*np.log(self.__Pij[i,j, alpha, beta] / self.__Pi[i,alpha]/self.__Pi[j,beta])
         return M
-    
-    def Print_Results(self,filename):
-        fh=open(filename,'w')
-        for i in range(self.N-1):
-            for j in range(i+1,self.N):
-                fh.write('%d %d '%(i, j))                
-                fh.write('%g '%self.mutual_information)
-                fh.write('%g '%self.direct_information)
-                fh.write('\n')
-        fh.close()
           
     def __comp_DI(self):
         """Computes Direct Information"""
@@ -211,9 +201,30 @@ class DCA:
         self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
         if return_di:
             return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+        
+    def print_results(self,filename):
+        """Prints DI and MI (compatible with the output of the matlab code)"""
+        fh=open(filename,'w')
+        for i in range(self.N-1):
+            for j in range(i+1,self.N):
+                fh.write('%d %d'%(i+1, j+1)) # matlab indexing    
+                fh.write(' %g'%self.mutual_information[i,j])
+                fh.write(' %g'%self.direct_information[i,j])
+                fh.write('\n')
+        fh.close()
+
+    def print_DI(self,filename):
+        """Prints DI (compatible with SPECTRUS-evo input)"""
+        fh=open(filename,'w')
+        for i in range(self.N-1):
+            for j in range(i+1,self.N):
+                fh.write('%d %d'%(i, j))                
+                fh.write(' %g'%self.direct_information[i,j])
+                fh.write('\n')
+        fh.close()
 
 
-def print_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
+def plot_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
     """Prints the contact maps derived from a DCA object"""
         #plt.figure(figsize=(8,8))
         #n_di=1000
