@@ -241,13 +241,13 @@ def plot_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
     plt.xlim(0,dca_obj.N)
 
 
-def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1):
+def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
     fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
     alignment=sf.Alignment(fasta_list)
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
-    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=False,get_DI=True)
+    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
     dca_obj.get_ordered_di()
     print("DCA completed")
