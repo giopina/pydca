@@ -226,6 +226,7 @@ class DCA:
 
 def plot_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
     """Prints the contact maps derived from a DCA object"""
+    import matplotlib.pyplot as plt
         #plt.figure(figsize=(8,8))
         #n_di=1000
     if n_di==None:
