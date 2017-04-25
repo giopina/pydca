@@ -1,5 +1,9 @@
-# Direct Coupling Analysis (DCA)
+# Direct Coupling Analysis (DCA) in python
 #
+# This code implements the mean field DCA method
+#
+# Written by G. Pinamonti and E. Sarti
+# @ FU Berlin and NIH, in 2017
 # 
 # SOME RELEVANT VARIABLES:
 #   N          number of residues in each sequence (no insert)
@@ -11,9 +15,12 @@
 #              counts.
 #   Pij        N x N x q x q matrix containing the reweighted frequency 
 #              counts with pseudo counts.
-#   invC          N x (q-1) x N x (q-1) inverse of the covariance matrix.
+#   invC          N x (q-1) x N x (q-1) inverse of the covariance matrix
 #
-# 
+# Parts of this code are based on the Matlab implementation freely
+# available for download at http://dca.rice.edu/portal/dca/
+#
+#
 # Permission is granted for anyone to copy, use, or modify this
 # software and accompanying documents for any uncommercial
 # purposes, provided this copyright notice is retained, and note is
@@ -21,7 +28,7 @@
 # documents are distributed without any warranty, express or
 # implied. All use is entirely at the user's own risk.
 #
-# Any publication resulting from applications of DCA should cite:
+# Any publication resulting from applications of mfDCA should cite:
 #
 #     F Morcos, A Pagnani, B Lunt, A Bertolino, DS Marks, C Sander, 
 #     R Zecchina, JN Onuchic, T Hwa, M Weigt (2011), Direct-coupling
@@ -32,6 +39,7 @@
 
 import numpy as np
 import support_functions as sf
+import matplotlib.pyplot as plt # TODO: where should this go? here or in the plot function?
 
 class DCA:
     """Class DCA:
@@ -227,9 +235,7 @@ class DCA:
 
 def plot_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
     """Prints the contact maps derived from a DCA object"""
-    import matplotlib.pyplot as plt
-        #plt.figure(figsize=(8,8))
-        #n_di=1000
+    ### TODO: I think it should consider the indexes of the original sequence. This way one can compare it with other alignments of the same stretch of aminoacids
     if n_di==None:
         n_di=dca_obj.N*2
     if lower_half:
@@ -254,4 +260,3 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
     dca_obj.get_ordered_di()
     print("DCA completed")
     return dca_obj
-
