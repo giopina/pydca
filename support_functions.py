@@ -152,8 +152,8 @@ class Alignment:
                 self.sequences=[seq['sequence'] for seq in fasta_list] # sequences
                 self.names=[seq['title'] for seq in fasta_list] # names of sequences can be useful in the prostprocessing
 
-                self.orig2align=[np.where([i!='-' or i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                self.align2orig=[np.cumsum([i!='-' or i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                self.orig2align=[np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                self.align2orig=[np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
                 
                 self.__strip()
 
@@ -163,8 +163,8 @@ class Alignment:
                 this_name='stripper'
                 self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*" ### TODO: do we really need to do search for . and * for all sequences??
                 ### TODO: these two lists of lists are probably redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
-                self.strip2align=[np.where([i!='.' or i!='*' or i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                self.align2strip=[np.cumsum([i!='.' or i!='*' or i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                self.strip2align=[np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                self.align2strip=[np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
 
                 if len(set([len(s) for s in self.stripped_seqs]))>1:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
@@ -181,7 +181,7 @@ It may look useless. And it probably is."""
                 fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,self.sequences)]
                 return fasta_list
 
-        def filter(self,limit):
+        def filter_gaps(self,limit):
                 """These method filters sequences with more than a specific number of continuos gaps "-", defined by the user.
                 It returns a new alignment object as an output!"""
                 # TODO: all this is done in a very stupid way. but it was the first thing that came into my mind.
@@ -195,3 +195,16 @@ It may look useless. And it probably is."""
                 print('New number of sequences=%d'%len(fasta_list))
                 new_alignment=Alignment(fasta_list)
                 return new_alignment
+
+        def cut_alignment(self,start_ndx,end_ndx):
+                """Cuts an alignment object based on indexes referred to the stripped sequences"""
+                ### well, I'm not sure how to do it...
+                
+        
+def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nucleicacid=False):
+        """Reads an alignment from a .fasta format file and returns an Alignment object"""
+        fasta_list=FASTA_parser(inputfile,check_aminoacid=check_aminoacid,check_nucleicacid=check_nucleicacid)
+        alin=Alignment(fasta_list)
+        if filter_limit!=None:
+                alin=alin.filter_gaps(filter_limit) # TODO is this smart?
+        return alin
