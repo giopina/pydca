@@ -170,6 +170,28 @@ class Alignment:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
 
-                self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as numbers
+                self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as number # TODO: this is probably not so efficient but who cares
 
                 self.q=np.max(self.Z)+1 # for proteins is always 21, but we can keep it general in case somebody wants to use RNA
+
+
+        def get_dict(self):
+                """This creates a dictionary of names and sequences (analogous to the input of the constructor.
+It may look useless. And it probably is."""
+                fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,self.sequences)]
+                return fasta_list
+
+        def filter(self,limit):
+                """These method filters sequences with more than a specific number of continuos gaps "-", defined by the user.
+                It returns a new alignment object as an output!"""
+                # TODO: all this is done in a very stupid way. but it was the first thing that came into my mind.
+                assert limit>0, "'limit' should better be positive, don't you think?"
+                lim_string='-'*limit
+                fasta_list=self.get_dict() #creating a dictionary of the sequences
+                print('Old number of sequences=%d'%self.M)
+                for iseq in range(self.M-1,-1,-1):
+                        if lim_string in self.stripped_seqs[iseq]:
+                                fasta_list.pop(iseq)
+                print('New number of sequences=%d'%len(fasta_list))
+                new_alignment=Alignment(fasta_list)
+                return new_alignment
