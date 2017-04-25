@@ -52,15 +52,17 @@ class DCA:
         print("compute true frequencies...")
         self.__comp_true_freq()
         if get_MI:
-            print("compute MI")
+            print("compute mutual information, MI")
             self.__comp_MI()
         print("add pseudocounts")
+        # pseudocounts to avoid singularities due to elements equal to zero
         self.__with_pc()
-        print("compute C")
+        print("compute correlation matrix, C")
         self.__comp_C()
         if get_DI:
-            print("compute DI")
+            print("compute direct information, DI")
             self.__comp_DI()
+            self.get_ordered_di() ### I actually don't see why it shouldn't always do this...
         print("Done!")
 
     def __comp_true_freq(self):
@@ -195,11 +197,11 @@ class DCA:
 
     def get_ordered_di(self,k_pairs=None,offset=4,return_di=False):
         """Sort the pairs by their direct information"""
-        if k_pairs==None:
-            k_pairs=self.N*2
         faraway=np.triu_indices(self.N,k=offset)
         self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
         if return_di:
+            if k_pairs==None:
+                k_pairs=self.N*2
             return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
         
     def print_results(self,filename):
@@ -222,7 +224,6 @@ class DCA:
                 fh.write(' %g'%self.direct_information[i,j])
                 fh.write('\n')
         fh.close()
-
 
 def plot_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
     """Prints the contact maps derived from a DCA object"""
@@ -253,3 +254,4 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
     dca_obj.get_ordered_di()
     print("DCA completed")
     return dca_obj
+
