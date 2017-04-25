@@ -118,7 +118,13 @@ class Alignment:
         
         def __init__(self,fasta_list):
                 """This creates an Alignment object from a list of sequences. It strip them from lowercase letters and '.' or '*' characters.
-                TODO: add a method to go back to the original indexing of each sequence from the stripped indexes
+                -----------------------
+                A bit of nomenclature:
+
+                aligned sequence -> sequence in the alignment fasta file (with "-","." and lowercase letters)
+                original sequence -> the original sequence of the protein (without "-" and "." gaps, but with lowercase letters)
+                stripped sequence -> sequence stripped from "." and lowercase letters. Ready for the DCA
+                -----------------------
                 """
                 self.letter2numer={\
                 # full AA alphabet
@@ -154,6 +160,10 @@ class Alignment:
 
                 self.orig2align=[np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
                 self.align2orig=[np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+
+                if len(set([len(s) for s in self.sequences]))>1:
+                        raise_error(this_name,"ERROR: aligned sequences have different lengths!")
+                self.N_align=len(self.sequences[0]) # this is the lenght of each aligned sequences
                 
                 self.__strip()
 
@@ -161,14 +171,20 @@ class Alignment:
         def __strip(self):
                 """Fuck this. I'm going to be a stripper"""
                 this_name='stripper'
-                self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*" ### TODO: do we really need to do search for . and * for all sequences??
-                ### TODO: these two lists of lists are probably redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
-                self.strip2align=[np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                self.align2strip=[np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
-
+                self.stripped_seqs=[re.sub("[a-z]|\.|\*",'',s) for s in self.sequences] # this should remove lowercase letters and "."  and "*"
+                ### TODO: do we really need to do search for . and * for all sequences??
+                ### Maybe it's better to do it, just in case there's some error in the fasta file.
+                ### It doesn't take too much time anyway
                 if len(set([len(s) for s in self.stripped_seqs]))>1:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
+
+                ### these two lists of lists are redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
+                #self.strip2align=[np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                #self.align2strip=[np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                self.strip2align=np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]
+                self.align2strip=np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
+                ###
 
                 self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as number # TODO: this is probably not so efficient but who cares
 
@@ -197,9 +213,15 @@ It may look useless. And it probably is."""
                 return new_alignment
 
         def cut_alignment(self,start_ndx,end_ndx):
-                """Cuts an alignment object based on indexes referred to the stripped sequences"""
-                ### well, I'm not sure how to do it...
-                
+                """Cuts an alignment object based on indexes referred to the stripped sequences.
+                Returns a new alignment object as output!"""
+                ### TODO: check that I'm not doing something too stupidly inefficient here...
+                i1=self.strip2align[start_ndx]
+                i2=self.strip2align[end_ndx]
+                new_seqs=[''.join(list(seq)[i1:i2]) for seq in self.sequences]
+                fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,new_seqs)]
+                new_alignment=Alignment(fasta_list)
+                return new_alignment
         
 def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nucleicacid=False):
         """Reads an alignment from a .fasta format file and returns an Alignment object"""
