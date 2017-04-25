@@ -222,6 +222,28 @@ It may look useless. And it probably is."""
                 fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,new_seqs)]
                 new_alignment=Alignment(fasta_list)
                 return new_alignment
+
+        def get_original_seq(self,iseq):
+                """Returns a specific original sequence form the alignment"""
+                seq=np.array(list(self.sequences[iseq]))
+                orig_seq=''.join(seq[self.orig2align[iseq]])
+                return orig_seq
+        
+        def find_sequence(self,seq):
+                """Looks through the original sequences to find a given sequence. Returns the corresponding index, name and aligned sequence."""
+                results=[] ### can we have more than one sequences that match the query?
+                for iseq in range(self.M):
+                        orig_seq=self.get_original_seq(iseq)
+                        # use uppercase to avoid ambiguity
+                        if seq.upper()==orig_seq.upper():
+                                results.append((iseq,self.names[iseq],self.sequences[iseq]))
+                if len(results)==0:
+                        return False
+                if len(results)==1:
+                        return results[0]
+                if len(results)>1:
+                        print("WARNING: there are %d sequences that match the one you provided. Maybe you have identical sequences in the alignment?"%len(results))
+                        return results
         
 def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nucleicacid=False):
         """Reads an alignment from a .fasta format file and returns an Alignment object"""
