@@ -237,7 +237,7 @@ def plot_contacts(dca_obj,dca_obj2=None,n_di=None,lower_half=False,iseq=None,col
     """Prints the contact maps derived from a DCA object.
     if iseq>0 will remap the indexes to the original aminoacids of the sequence"""
     ### TODO: how can we change this to plot and compare two contact maps?
-    ###       is it better to do it inside the function of outside?
+    ###       is it better to do it inside the function or outside?
     if n_di==None:
         n_di=dca_obj.N*2
     ix=dca_obj.di_order[:n_di,0]
@@ -249,16 +249,20 @@ def plot_contacts(dca_obj,dca_obj2=None,n_di=None,lower_half=False,iseq=None,col
     matr=np.zeros((dca_obj.N,dca_obj.N))
     if lower_half:
         if binary:
-            matr[[iy,ix]]=1
-        else:
-            matr[[iy,ix]]=dca_obj.direct_information[[iy,ix]]
-    else:
-        if binary:
             matr[[ix,iy]]=1
         else:
             matr[[ix,iy]]=dca_obj.direct_information[[ix,iy]]
+        iny, inx = np.indices(matr.shape) 
+        my_mask=inx<=iny
+    else:
+        if binary:
+            matr[[iy,ix]]=1
+        else:
+            matr[[iy,ix]]=dca_obj.direct_information[[iy,ix]]
+        iny, inx = np.indices(matr.shape) 
+        my_mask=inx>=iny
         #plt.scatter(ix,iy,marker='s',s=3,color=colore)
-    plt.imshow(matr,cmap=colormap,origin='lower')
+    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower')
     plt.plot(range(dca_obj.N),color='black')
     return matr
 
