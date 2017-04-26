@@ -255,6 +255,8 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
         n_di=dca_obj.N*2
     ix=dca_obj.di_order[:n_di,0]
     iy=dca_obj.di_order[:n_di,1]
+    old_ix=ix
+    old_iy=iy
     if iseq!=None:
         assert iseq>=0 and iseq<dca_obj.M,'ERROR: invalid sequence ID'
         ix=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[ix]]#+offset
@@ -264,14 +266,14 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
         if binary:
             matr[[ix,iy]]=1
         else:
-            matr[[ix,iy]]=dca_obj.direct_information[[ix,iy]]
+            matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
         iny, inx = np.indices(matr.shape) 
         my_mask=inx<=iny
     else:
         if binary:
             matr[[iy,ix]]=1
         else:
-            matr[[iy,ix]]=dca_obj.direct_information[[iy,ix]]
+            matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
         iny, inx = np.indices(matr.shape) 
         my_mask=inx>=iny
         #plt.scatter(ix,iy,marker='s',s=3,color=colore)
