@@ -100,7 +100,6 @@ class DCA:
         """Adds pseudocounts"""
         self.__Pi = (1.-self.pseudocount_weight)*self.__Pi +\
                   self.pseudocount_weight/self.q*np.ones((self.N,self.q))
-        ### TODO: do we need to store both __Pij_true and __Pij?
         Pij_diag=self.__Pij[range(self.N),range(self.N),:,:]
         self.__Pij = (1.-self.pseudocount_weight)*self.__Pij +\
                    self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
@@ -198,6 +197,7 @@ class DCA:
         Pdir = Pdir / np.sum(Pdir)
         Pfac = self.__Pi[i,:][:,np.newaxis]*self.__Pi[j,:][np.newaxis,:]
         ### TODO why trace? Shouldn't it be the sum over all elements?
+        ###      apparently there is a mathematical reason for it
         DI = np.trace(\
                       np.dot(Pdir.T , np.log((Pdir+tiny)/(Pfac+tiny)) ) \
         )
@@ -244,6 +244,9 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
 """
     ### TODO: how can we change this to plot and compare two contact maps?
     ###       is it better to do it inside the function or outside?
+    ### TODO: be careful with remapping indeces!
+    ###       right now if there are "-" in the sequence considered
+    ###       the indeces are actually counted twice!!
     if n_di==None:
         n_di=dca_obj.N*2
     ix=dca_obj.di_order[:n_di,0]
@@ -276,11 +279,10 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
-    fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
-    alignment=sf.Alignment(fasta_list)
+    alignment=read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
     dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
     dca_obj.get_ordered_di()
-    print("DCA completed")
+    print("=== DCA completed ===")
     return dca_obj
