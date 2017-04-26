@@ -233,9 +233,15 @@ class DCA:
                 fh.write('\n')
         fh.close()
 
-def plot_contacts(dca_obj,dca_obj2=None,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False):
+def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False):
     """Prints the contact maps derived from a DCA object.
-    if iseq>0 will remap the indexes to the original aminoacids of the sequence"""
+    if iseq>0 will remap the indexes to the original aminoacids of the sequence.
+    If you want to compare the contacts from two dca objects, just use
+
+        plot_contacts(dca_obj1)
+        plot_contacts(dca_obj2,lower_half=True)
+
+"""
     ### TODO: how can we change this to plot and compare two contact maps?
     ###       is it better to do it inside the function or outside?
     if n_di==None:
