@@ -252,3 +252,5 @@ def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nuclei
         if filter_limit!=None:
                 alin=alin.filter_gaps(filter_limit) # TODO is this smart?
         return alin
+
+### TODO: a function to write down an alignment in fasta format
