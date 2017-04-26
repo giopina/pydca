@@ -233,20 +233,34 @@ class DCA:
                 fh.write('\n')
         fh.close()
 
-def plot_contacts(dca_obj,n_di=None,colore='b',lower_half=False):
-    """Prints the contact maps derived from a DCA object"""
-    ### TODO: I think it should consider the indexes of the original sequence. This way one can compare it with other alignments of the same stretch of aminoacids
+def plot_contacts(dca_obj,dca_obj2=None,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False):
+    """Prints the contact maps derived from a DCA object.
+    if iseq>0 will remap the indexes to the original aminoacids of the sequence"""
+    ### TODO: how can we change this to plot and compare two contact maps?
+    ###       is it better to do it inside the function of outside?
     if n_di==None:
         n_di=dca_obj.N*2
+    ix=dca_obj.di_order[:n_di,0]
+    iy=dca_obj.di_order[:n_di,1]
+    if iseq!=None:
+        assert iseq>=0 and iseq<dca_obj.M,'ERROR: invalid sequence ID'
+        ix=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[ix]]
+        iy=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[iy]]
+    matr=np.zeros((dca_obj.N,dca_obj.N))
     if lower_half:
-        plt.scatter(dca_obj.di_order[:n_di,1],dca_obj.di_order[:n_di,0],\
-                    marker='s',s=3,color=colore)
+        if binary:
+            matr[[iy,ix]]=1
+        else:
+            matr[[iy,ix]]=dca_obj.direct_information[[iy,ix]]
     else:
-        plt.scatter(dca_obj.di_order[:n_di,0],dca_obj.di_order[:n_di,1],\
-                    marker='s',s=3,color=colore)
+        if binary:
+            matr[[ix,iy]]=1
+        else:
+            matr[[ix,iy]]=dca_obj.direct_information[[ix,iy]]
+        #plt.scatter(ix,iy,marker='s',s=3,color=colore)
+    plt.imshow(matr,cmap=colormap,origin='lower')
     plt.plot(range(dca_obj.N),color='black')
-    plt.ylim(0,dca_obj.N)
-    plt.xlim(0,dca_obj.N)
+    return matr
 
 
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
