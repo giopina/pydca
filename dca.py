@@ -233,10 +233,14 @@ class DCA:
                 fh.write('\n')
         fh.close()
 
-def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False):
+def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False,offset=0):
     """Prints the contact maps derived from a DCA object.
-    if iseq>0 will remap the indexes to the original aminoacids of the sequence.
-    If you want to compare the contacts from two dca objects, just use
+
+    if iseq>0 will remap the indexes to the original aminoacids of the sequence;
+
+    if ofset>0 will shift the index of the first aminoacid (use it to compare dca on different part of a sequence);
+
+    if you want to compare the contacts from two dca objects, just use
 
         plot_contacts(dca_obj1)
         plot_contacts(dca_obj2,lower_half=True)
@@ -253,9 +257,9 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
     iy=dca_obj.di_order[:n_di,1]
     if iseq!=None:
         assert iseq>=0 and iseq<dca_obj.M,'ERROR: invalid sequence ID'
-        ix=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[ix]]
-        iy=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[iy]]
-    matr=np.zeros((dca_obj.N,dca_obj.N))
+        ix=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[ix]]#+offset
+        iy=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[iy]]#+offset
+    matr=np.zeros((dca_obj.N,dca_obj.N)) ### TODO: here should not be N but the length of the original sequence
     if lower_half:
         if binary:
             matr[[ix,iy]]=1
@@ -271,15 +275,15 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
         iny, inx = np.indices(matr.shape) 
         my_mask=inx>=iny
         #plt.scatter(ix,iy,marker='s',s=3,color=colore)
-    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower')
-    plt.plot(range(dca_obj.N),color='black')
+    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',extent=[offset,dca_obj.N+offset,offset,dca_obj.N+offset]) ### TODO: here should not be N but the length of the original sequence
+    plt.plot(range(dca_obj.N),color='black') ### TODO: here should not be N but the length of the original sequence
     return matr
 
 
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
-    alignment=read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
+    alignment=sf.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
     dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
