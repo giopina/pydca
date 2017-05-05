@@ -45,7 +45,7 @@ class DCA:
     """Class DCA:
     direct coupling analysis"""
     
-    def __init__(self,alignment,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True,get_FAPC=False):
+    def __init__(self,alignment,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True,get_CFN=False):
         """Constructor of the class DCA"""
         ### TODO: what if we put a "save_invC" flag? suppose one wants to work with the couplings afterwards...
         
@@ -63,20 +63,21 @@ class DCA:
             self.__comp_MI()
         print("add pseudocounts")
         # pseudocounts to avoid singularities due to elements equal to zero
-        self.__with_pc()
+        self.__add_pseudocounts()
         print("compute correlation matrix, C")
         self.__comp_C()
         
         if get_DI:
             print("compute direct information, DI")
             self.__comp_DI()
-            self.get_ordered_di() ### I actually don't see why it shouldn't always do this...
+            self.get_ordered_di() ### Let's always do it
         print("Done!")
-        if get_FAPC:
-            print("compute average-product correction of the Frobenius Norm")
-            self.__comp_FAPC()
-
-        del self.__invC ### TODO: maybe is not a good idea to delete this here...
+        if get_CFN:
+            print("compute corrected Frobenius norm")
+            self.__comp_CFN()
+            self.get_ordered_cfn() ### Let's always do it
+            
+        del self.__invC ### TODO: maybe sometimes one wants to save it?
         del self.__Pi   ### 
 
             
@@ -103,8 +104,8 @@ class DCA:
                 self.__Pij[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
         self.__Pij = self.__Pij/self.Meff
             
-    def __with_pc(self):
-        """Adds pseudocounts"""
+    def __add_pseudocounts(self):
+        """Adds pseudocounts to the observed mutation frequencies"""
         self.__Pi = (1.-self.pseudocount_weight)*self.__Pi +\
                   self.pseudocount_weight/self.q*np.ones((self.N,self.q))
         Pij_diag=self.__Pij[range(self.N),range(self.N),:,:]
@@ -179,15 +180,16 @@ class DCA:
         self.gauge='Ising'
                       
         
-    def __comp_FAPC(self,no_gaps=False):
+    def __comp_CFN(self,no_gaps=False):
         """Computes Frobenius norm"""
         ### TODO: add option to exclude gaps
+        ### TODO: CFN can be negative? Check this!
         if self.gauge!='Ising':
             self.__to_ising_gauge()
-        self.FAPC=np.sqrt(np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
-        ### TODO: is FAPC symmetric??
-        F_sum=np.sum(self.FAPC,axis=0)
-        self.FAPC-=F_sum[:,np.newaxis]*F_sum[np.newaxis,:]/np.sum(F_sum)
+        self.CFN=np.sqrt(np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
+        ### TODO: is CFN symmetric??
+        F_sum=np.sum(self.CFN,axis=0)
+        self.CFN-=F_sum[:,np.newaxis]*F_sum[np.newaxis,:]/np.sum(F_sum)
         
     def __bp_link(self,i,j):
         """Computes direct information"""
@@ -242,14 +244,14 @@ class DCA:
                 k_pairs=self.N*2
             return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
 
-    def get_ordered_fapc(self,k_pairs=None,offset=4,return_score=False):
+    def get_ordered_cfn(self,k_pairs=None,offset=4,return_score=False):
         """Sort the pairs by their Frobenius norm score"""
         faraway=np.triu_indices(self.N,k=offset)
-        self.fapc_order=(np.array(faraway).T[np.argsort(self.FAPC[faraway])])[::-1]
+        self.cfn_order=(np.array(faraway).T[np.argsort(self.CFN[faraway])])[::-1]
         if return_score:
             if k_pairs==None:
                 k_pairs=self.N*2
-            return self.FAPC[[self.fapc_order[:k_pairs,0],self.fapc_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+            return self.CFN[[self.cfn_order[:k_pairs,0],self.cfn_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
         
     def print_results(self,filename):
         """Prints DI and MI (compatible with the output of the matlab code)"""
@@ -272,7 +274,7 @@ class DCA:
                 fh.write('\n')
         fh.close()
 
-def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False,offset=0):
+def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False,offset=0,score='DI'):
     """Prints the contact maps derived from a DCA object.
 
     if iseq>0 will remap the indexes to the original aminoacids of the sequence;
@@ -284,6 +286,10 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
         plot_contacts(dca_obj1)
         plot_contacts(dca_obj2,lower_half=True)
 
+    score options:
+    'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
+    'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
+
 """
     ### TODO: how can we change this to plot and compare two contact maps?
     ###       is it better to do it inside the function or outside?
@@ -291,10 +297,18 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
     ###       right now if there are "-" in the sequence considered
     ###       the indeces are actually counted twice!!
     ### TODO: add Frobenius score option!
-    if n_di==None:
-        n_di=dca_obj.N*2
-    ix=dca_obj.di_order[:n_di,0]
-    iy=dca_obj.di_order[:n_di,1]
+    if n_pairs==None:
+        n_pairs=dca_obj.N*2
+    ### I'm not sure this is the most elegant and correct thing to do to check/select the score option
+    if score=='DI':
+        ix=dca_obj.di_order[:n_pairs,0]
+        iy=dca_obj.di_order[:n_pairs,1]
+    elif score=='CFN':
+        ix=dca_obj.cfn_order[:n_pairs,0]
+        iy=dca_obj.cfn_order[:n_pairs,1]
+    else:
+        raise ValueError("Unrecognize score option: '%s'"%score)
+    ###
     old_ix=ix
     old_iy=iy
     if iseq!=None:
@@ -306,14 +320,21 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
         if binary:
             matr[[ix,iy]]=1
         else:
-            matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
+            if score=='DI':
+                matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
+            if score=='CFN':
+                matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
+
         iny, inx = np.indices(matr.shape) 
         my_mask=inx<=iny
     else:
         if binary:
             matr[[iy,ix]]=1
         else:
-            matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
+            if score=='DI':
+                matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
+            if score=='CFN':
+                matr[[iy,ix]]=dca_obj.CFN[[old_iy,old_ix]]
         iny, inx = np.indices(matr.shape) 
         my_mask=inx>=iny
         #plt.scatter(ix,iy,marker='s',s=3,color=colore)
@@ -322,13 +343,13 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
     return matr
 
 
-def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_FAPC=False):
+def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
     alignment=sf.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
-    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True,get_FAPC=compute_FAPC)
+    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True,get_CFN=compute_CFN)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
-    dca_obj.get_ordered_di()
+    #dca_obj.get_ordered_di()
     print("=== DCA completed ===")
     return dca_obj
