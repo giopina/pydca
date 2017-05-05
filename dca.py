@@ -45,14 +45,13 @@ class DCA:
     """Class DCA:
     direct coupling analysis"""
     
-    #def __init__(self,inputfile,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True):
-    def __init__(self,alignment,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True):
+    def __init__(self,alignment,pseudocount_weight=0.5,theta=0.1,get_MI=False,get_DI=True,get_FAPC=False):
         """Constructor of the class DCA"""
+        ### TODO: what if we put a "save_invC" flag? suppose one wants to work with the couplings afterwards...
+        
         self.pseudocount_weight=pseudocount_weight # relative weight of pseudo count
         self.theta=theta # threshold for sequence id in reweighting
-
-        #fasta_list=sf.FASTA_parser(inputfile,check_aminoacid=True)
-        #self.alignment=sf.Alignment(fasta_list)
+        
         self.alignment=alignment
         self.N=self.alignment.N
         self.M=self.alignment.M
@@ -67,12 +66,20 @@ class DCA:
         self.__with_pc()
         print("compute correlation matrix, C")
         self.__comp_C()
+        
         if get_DI:
             print("compute direct information, DI")
             self.__comp_DI()
             self.get_ordered_di() ### I actually don't see why it shouldn't always do this...
         print("Done!")
+        if get_FAPC:
+            print("compute average-product correction of the Frobenius Norm")
+            self.__comp_FAPC()
 
+        del self.__invC ### TODO: maybe is not a good idea to delete this here...
+        del self.__Pi   ### 
+
+            
     def __comp_true_freq(self):
         """Computes reweighted frequency counts"""
         from scipy.spatial.distance import pdist
@@ -120,7 +127,8 @@ class DCA:
         #del self.__Pi
         ### NB: the order of the indexes in C is different from __Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
         from numpy.linalg import tensorinv
-        self.__invC=tensorinv(C)
+        self.__invC=tensorinv(C) # THIS IS MINUS THE COUPLINGS J_ij
+        self.gauge='Gas-lattice' ### we are in the Gas-lattice gauge
 
     def __comp_MI(self):
         """Computes the mutual information"""
@@ -151,13 +159,35 @@ class DCA:
         ### TODO: implement other DCAmethods
         ### TODO: there should be a smarter way of storing and accessing these symmetric matrices using only half the space
         self.direct_information=np.zeros((self.N,self.N))
+        ### TODO: this loops are not very python friendly. There might be a fastest way...
         for i in range(self.N-1):
             for j in range(i+1,self.N):
                 # direct information from mean-field
                 self.direct_information[i,j] = self.__bp_link(i,j)
         self.direct_information+=self.direct_information.T
-        del self.__invC
-        del self.__Pi
+
+    def __to_ising_gauge(self):
+        """converts the couplings to the Ising gauge"""
+        ### TODO: how do I go back to the lattice-gas Gauge?
+        # Remember: invC=-J_ij
+        # invC is symmetric in the mfDCA!
+        J_avg=np.average(self.__invC,axis=3)
+        ### Possa dio aver pieta' di noi
+        self.__invC+=np.average(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]\
+                      -J_avg[:,:,:,np.newaxis]\
+                      -np.transpose(J_avg,axes=(0,2,1))[:,np.newaxis,:,:]
+        self.gauge='Ising'
+                      
+        
+    def __comp_FAPC(self,no_gaps=False):
+        """Computes Frobenius norm"""
+        ### TODO: add option to exclude gaps
+        if self.gauge!='Ising':
+            self.__to_ising_gauge()
+        self.FAPC=np.sqrt(np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
+        ### TODO: is FAPC symmetric??
+        F_sum=np.sum(self.FAPC,axis=0)
+        self.FAPC-=F_sum[:,np.newaxis]*F_sum[np.newaxis,:]/np.sum(F_sum)
         
     def __bp_link(self,i,j):
         """Computes direct information"""
@@ -211,6 +241,15 @@ class DCA:
             if k_pairs==None:
                 k_pairs=self.N*2
             return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+
+    def get_ordered_fapc(self,k_pairs=None,offset=4,return_score=False):
+        """Sort the pairs by their Frobenius norm score"""
+        faraway=np.triu_indices(self.N,k=offset)
+        self.fapc_order=(np.array(faraway).T[np.argsort(self.FAPC[faraway])])[::-1]
+        if return_score:
+            if k_pairs==None:
+                k_pairs=self.N*2
+            return self.FAPC[[self.fapc_order[:k_pairs,0],self.fapc_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
         
     def print_results(self,filename):
         """Prints DI and MI (compatible with the output of the matlab code)"""
@@ -251,6 +290,7 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
     ### TODO: be careful with remapping indeces!
     ###       right now if there are "-" in the sequence considered
     ###       the indeces are actually counted twice!!
+    ### TODO: add Frobenius score option!
     if n_di==None:
         n_di=dca_obj.N*2
     ix=dca_obj.di_order[:n_di,0]
@@ -282,12 +322,12 @@ def plot_contacts(dca_obj,n_di=None,lower_half=False,iseq=None,colormap=plt.cm.C
     return matr
 
 
-def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False):
+def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_FAPC=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
     alignment=sf.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
-    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True)
+    dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True,get_FAPC=compute_FAPC)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
     dca_obj.get_ordered_di()
     print("=== DCA completed ===")
