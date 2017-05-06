@@ -172,17 +172,17 @@ class DCA:
         ### TODO: how do I go back to the lattice-gas Gauge?
         # Remember: invC=-J_ij
         # invC is symmetric in the mfDCA!
-        J_avg=np.average(self.__invC,axis=3)
+        J_avg=np.average(self.__invC,axis=3)*20./21. ### TODO: check this. I'm dividing/multiplying because I don't have gaps in __invC
         ### Possa dio aver pieta' di noi
-        self.__invC+=np.average(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]\
+        self.__invC+=np.average(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]*20./21.\
                       -J_avg[:,:,:,np.newaxis]\
                       -np.transpose(J_avg,axes=(0,2,1))[:,np.newaxis,:,:]
         self.gauge='Ising'
                       
         
-    def __comp_CFN(self,no_gaps=False):
+    def __comp_CFN(self,no_gaps=True):
         """Computes Frobenius norm"""
-        ### TODO: add option to exclude gaps
+        ### TODO: add option to include gaps (it must be done when changing gauge)
         ### TODO: CFN can be negative? Check this!
         if self.gauge!='Ising':
             self.__to_ising_gauge()
