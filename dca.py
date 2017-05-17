@@ -172,17 +172,17 @@ class DCA:
         ### TODO: how do I go back to the lattice-gas Gauge?
         # Remember: invC=-J_ij
         # invC is symmetric in the mfDCA!
-        J_avg=np.average(self.__invC,axis=3)*20./21. ### TODO: check this. I'm dividing/multiplying because I don't have gaps in __invC
+        J_avg=np.average(self.__invC,axis=3)
         ### Possa dio aver pieta' di noi
-        self.__invC+=np.average(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]*20./21.\
+        self.__invC+=np.average(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]\
                       -J_avg[:,:,:,np.newaxis]\
                       -np.transpose(J_avg,axes=(0,2,1))[:,np.newaxis,:,:]
         self.gauge='Ising'
                       
         
-    def __comp_CFN(self,no_gaps=True):
+    def __comp_CFN(self,no_gaps=False):
         """Computes Frobenius norm"""
-        ### TODO: add option to include gaps (it must be done when changing gauge)
+        ### TODO: add option to exclude gaps
         ### TODO: CFN can be negative? Check this!
         if self.gauge!='Ising':
             self.__to_ising_gauge()
@@ -235,18 +235,18 @@ class DCA:
         )
         return DI
 
-    def get_ordered_di(self,k_pairs=None,offset=4,return_di=False):
+    def get_ordered_di(self,k_pairs=None,offdiag=4,return_di=False):
         """Sort the pairs by their direct information"""
-        faraway=np.triu_indices(self.N,k=offset)
+        faraway=np.triu_indices(self.N,k=offdiag)
         self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
         if return_di:
             if k_pairs==None:
                 k_pairs=self.N*2
             return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
 
-    def get_ordered_cfn(self,k_pairs=None,offset=4,return_score=False):
+    def get_ordered_cfn(self,k_pairs=None,offdiag=4,return_score=False):
         """Sort the pairs by their Frobenius norm score"""
-        faraway=np.triu_indices(self.N,k=offset)
+        faraway=np.triu_indices(self.N,k=offdiag)
         self.cfn_order=(np.array(faraway).T[np.argsort(self.CFN[faraway])])[::-1]
         if return_score:
             if k_pairs==None:
@@ -274,6 +274,36 @@ class DCA:
                 fh.write('\n')
         fh.close()
 
+    def print_contacts(self,filename,iseq,n_pairs=None,score='DI',):
+        """Prints pairs with highest coupling score (compatible with AWSEM-ER input)"""
+        
+        if n_pairs==None:
+            n_pairs=self.N*2
+        ### I'm not sure this is the most elegant and correct thing to do to check/select the score option
+        if score=='DI':
+            ix=self.di_order[:n_pairs,0]
+            iy=self.di_order[:n_pairs,1]
+        elif score=='CFN':
+            ix=self.cfn_order[:n_pairs,0]
+            iy=self.cfn_order[:n_pairs,1]
+        else:
+            raise ValueError("Unrecognize score option: '%s'"%score)
+        ###
+        
+        assert iseq>=0 and iseq<self.M,'ERROR: invalid sequence ID'
+    
+        fh=open(filename,'w')
+        fh.write('i   j   i_id  j_id\n')
+        for i,j in zip(ix,iy):
+            i0=self.alignment.align2orig[iseq][self.alignment.strip2align[i]]
+            j0=self.alignment.align2orig[iseq][self.alignment.strip2align[j]]
+            res_i=self.alignment.stripped_seqs[iseq][i]
+            res_j=self.alignment.stripped_seqs[iseq][j]
+            fh.write("%d %d %d_%s %d_%s\n"%\
+                     (i0,j0,i0,res_i,j0,res_j))
+        fh.close()
+
+        
 def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False,offset=0,score='DI'):
     """Prints the contact maps derived from a DCA object.
 
@@ -296,7 +326,6 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.c
     ### TODO: be careful with remapping indeces!
     ###       right now if there are "-" in the sequence considered
     ###       the indeces are actually counted twice!!
-    ### TODO: add Frobenius score option!
     if n_pairs==None:
         n_pairs=dca_obj.N*2
     ### I'm not sure this is the most elegant and correct thing to do to check/select the score option
