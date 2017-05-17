@@ -17,6 +17,8 @@ Scripts to test against one dataset (reference results produced with the origina
 
 - ALIGNMENT: method/lists to go from "absolute" indexes to "local" indexes for each seq of the input (this is done but should be tested maybe. GP: now pretty much tested);
 
+- ALIGNMENT: a method to write the alignment in fasta format!
+
 - DCA: output DI as array (actually is probably more important the list of the highest-DI pairs);
        some get_contact_map(n. of highest DI to consider);
        remember we may want to exclude neighbours on the chain (up to 4 residues) when defining the highest DIs, but may want to reconsider them later (TODO).
