@@ -125,6 +125,11 @@ class Alignment:
                 original sequence -> the original sequence of the protein (without "-" and "." gaps, but with lowercase letters)
                 stripped sequence -> sequence stripped from "." and lowercase letters. Ready for the DCA
                 -----------------------
+                Some variables:
+                M        -> number of sequences
+                N        -> length of stripped sequences
+                N_align  -> length of sequences in the alignment
+                N_orig   -> list of lengths of original sequences
                 """
                 self.letter2numer={\
                 # full AA alphabet
@@ -158,15 +163,22 @@ class Alignment:
                 self.sequences=[seq['sequence'] for seq in fasta_list] # sequences
                 self.names=[seq['title'] for seq in fasta_list] # names of sequences can be useful in the prostprocessing
 
-                self.orig2align=[np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                self.align2orig=[np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
-
                 if len(set([len(s) for s in self.sequences]))>1:
                         raise_error(this_name,"ERROR: aligned sequences have different lengths!")
                 self.N_align=len(self.sequences[0]) # this is the lenght of each aligned sequences
+
+                self.orig2align=[np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                ### the following def tranform gaps in the index of the previous non-gap (not a very good choice)
+                #self.align2orig=[np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                ### the following instead transform gaps into -1s (hopefully)
+                self.align2orig=[np.ones(self.N_align,dtype=np.int32)*-1]*self.M
+                self.N_orig=[]
+                for iseq,seq in enumerate(self.sequences):
+                        n_orig=np.sum([i!='-' and i!='.' for i in seq])
+                        self.N_orig.append(n_orig)
+                        self.align2orig[iseq][np.where([i!='-' and i!='.' for i in seq])[0]]=np.arange(n_orig)
                 
                 self.__strip()
-
                 
         def __strip(self):
                 """Fuck this. I'm going to be a stripper"""
@@ -183,7 +195,9 @@ class Alignment:
                 #self.strip2align=[np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
                 #self.align2strip=[np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
                 self.strip2align=np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]
-                self.align2strip=np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
+                #self.align2strip=np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
+                self.align2strip=np.ones(self.N_align,dtype=np.int32)*-1
+                self.align2strip[np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]]=np.arange(self.N)
                 ###
 
                 self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as number # TODO: this is probably not so efficient but who cares
@@ -192,7 +206,7 @@ class Alignment:
 
 
         def get_dict(self):
-                """This creates a dictionary of names and sequences (analogous to the input of the constructor.
+                """This creates a dictionary of names and sequences (analogous to the input of the constructor).
 It may look useless. And it probably is."""
                 fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,self.sequences)]
                 return fasta_list
