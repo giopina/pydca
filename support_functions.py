@@ -171,12 +171,15 @@ class Alignment:
                 ### the following def tranform gaps in the index of the previous non-gap (not a very good choice)
                 #self.align2orig=[np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
                 ### the following instead transform gaps into -1s (hopefully)
-                self.align2orig=[np.ones(self.N_align,dtype=np.int32)*-1]*self.M
+                self.align2orig=[np.ones(self.N_align,dtype=np.int32)*-1 for i in range(self.M)]
                 self.N_orig=[]
-                for iseq,seq in enumerate(self.sequences):
-                        n_orig=np.sum([i!='-' and i!='.' for i in seq])
+                #for iseq,seq in enumerate(self.sequences):
+                for iseq in range(self.M):
+                        #n_orig=np.sum([i!='-' and i!='.' for i in seq])
+                        n_orig=len(self.orig2align[iseq])
                         self.N_orig.append(n_orig)
-                        self.align2orig[iseq][np.where([i!='-' and i!='.' for i in seq])[0]]=np.arange(n_orig)
+                        #self.align2orig[iseq][np.where([i!='-' and i!='.' for i in seq])[0]]=np.arange(n_orig)
+                        self.align2orig[iseq][self.orig2align[iseq]]=np.arange(n_orig)
                 
                 self.__strip()
                 

@@ -274,6 +274,12 @@ class DCA:
                 fh.write('\n')
         fh.close()
 
+    def __get_pair_idx(self,iseq,n_pairs,score='DI'):
+        """Return two lists l1,l2 that contains the indexes of the highest-score pairs.
+        (l1[i],l2[i]) is the i-th pair.
+        This can then be used to plot, print, etc"""
+        ### TODO: all
+        
     def print_contacts(self,filename,iseq,n_pairs=None,score='DI',):
         """Prints pairs with highest coupling score (compatible with AWSEM-ER input)"""
         
@@ -293,10 +299,12 @@ class DCA:
         assert iseq>=0 and iseq<self.M,'ERROR: invalid sequence ID'
     
         fh=open(filename,'w')
-        fh.write('i   j   i_id  j_id\n')
+        fh.write('i   j  i_id  j_id\n')
         for i,j in zip(ix,iy):
             i0=self.alignment.align2orig[iseq][self.alignment.strip2align[i]]
             j0=self.alignment.align2orig[iseq][self.alignment.strip2align[j]]
+            if i0<0 or j0<0:
+                continue # skip pairs of aa that are not in the original sequence 
             res_i=self.alignment.stripped_seqs[iseq][i]
             res_j=self.alignment.stripped_seqs[iseq][j]
             fh.write("%d %d %d_%s %d_%s\n"%\
@@ -344,16 +352,29 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.c
         assert iseq>=0 and iseq<dca_obj.M,'ERROR: invalid sequence ID'
         ix=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[ix]]#+offset
         iy=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[iy]]#+offset
-    matr=np.zeros((dca_obj.N,dca_obj.N)) ### TODO: here should not be N but the length of the original sequence
+
+#    print(ix,iy)
+    old_ix=old_ix[ix>=0]
+    old_iy=old_iy[ix>=0]
+    iy=iy[ix>=0]
+    ix=ix[ix>=0]
+#    print(ix,iy)
+    old_ix=old_ix[iy>=0]
+    old_iy=old_iy[iy>=0]
+    ix=ix[iy>=0]
+    iy=iy[iy>=0]
+    #print(ix,iy)
+
+    matr=np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) ### TODO: here should not be N but the length of the original sequence
+    print(matr.shape)
     if lower_half:
         if binary:
-            matr[[ix,iy]]=1
+            matr[[ix,iy]]=1 
         else:
             if score=='DI':
                 matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
             if score=='CFN':
                 matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
-
         iny, inx = np.indices(matr.shape) 
         my_mask=inx<=iny
     else:
@@ -367,8 +388,11 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.c
         iny, inx = np.indices(matr.shape) 
         my_mask=inx>=iny
         #plt.scatter(ix,iy,marker='s',s=3,color=colore)
-    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',extent=[offset,dca_obj.N+offset,offset,dca_obj.N+offset]) ### TODO: here should not be N but the length of the original sequence
-    plt.plot(range(dca_obj.N),color='black') ### TODO: here should not be N but the length of the original sequence
+        #plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',extent=[offset,dca_obj.N+offset,offset,dca_obj.N+offset]) ### TODO: here should not be N but the length of the original sequence
+    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',\
+               extent=[offset,dca_obj.alignment.N_orig[iseq]+offset,\
+                       offset,dca_obj.alignment.N_orig[iseq]+offset])
+    plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black') ### TODO: here should not be N but the length of the original sequence
     return matr
 
 
