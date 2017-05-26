@@ -53,29 +53,31 @@ class DCA:
         self.theta=theta # threshold for sequence id in reweighting
         
         self.alignment=alignment
-        self.N=self.alignment.N
-        self.M=self.alignment.M
-        self.q=self.alignment.q
-        print("compute true frequencies...")
+        self.N=self.alignment.N # length of seq
+        self.M=self.alignment.M # Number of seqa
+        self.q=self.alignment.q # N. on aminoacids+gap
+        print("computing true frequencies...")
         self.__comp_true_freq()
         if get_MI:
-            print("compute mutual information, MI")
+            print("computing mutual information, MI")
             self.__comp_MI()
-        print("add pseudocounts")
         # pseudocounts to avoid singularities due to elements equal to zero
+        print("adding pseudocounts")
         self.__add_pseudocounts()
-        print("compute correlation matrix, C")
+        # mean-field approximation: the inversion of the correlation matrix approximates the couplings
+        print("computing and inverting correlation matrix, C")
         self.__comp_C()
-        
+        # Direct information DI measures the coupling score of each pair
         if get_DI:
-            print("compute direct information, DI")
+            print("computing direct information, DI")
             self.__comp_DI()
-            self.get_ordered_di() ### Let's always do it
+            self.get_ordered_di()
         print("Done!")
+        # The corrected Frobenius norm is another possible score
         if get_CFN:
-            print("compute corrected Frobenius norm")
+            print("computing corrected Frobenius norm")
             self.__comp_CFN()
-            self.get_ordered_cfn() ### Let's always do it
+            self.get_ordered_cfn()
             
         del self.__invC ### TODO: maybe sometimes one wants to save it?
         del self.__Pi   ### 
@@ -125,7 +127,6 @@ class DCA:
                             self.__Pi[np.newaxis,:,np.newaxis,:-1],\
                             axes=(0,2,1,3))
         del self.__Pij
-        #del self.__Pi
         ### NB: the order of the indexes in C is different from __Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
         from numpy.linalg import tensorinv
         self.__invC=tensorinv(C) # THIS IS MINUS THE COUPLINGS J_ij
@@ -273,12 +274,6 @@ class DCA:
                 fh.write(' %g'%self.direct_information[i,j])
                 fh.write('\n')
         fh.close()
-
-    def __get_pair_idx(self,iseq,n_pairs,score='DI'):
-        """Return two lists l1,l2 that contains the indexes of the highest-score pairs.
-        (l1[i],l2[i]) is the i-th pair.
-        This can then be used to plot, print, etc"""
-        ### TODO: all
         
     def print_contacts(self,filename,iseq,n_pairs=None,score='DI',):
         """Prints pairs with highest coupling score (compatible with AWSEM-ER input)"""
@@ -311,13 +306,47 @@ class DCA:
                      (i0,j0,i0,res_i,j0,res_j))
         fh.close()
 
+    def get_pair_idx(self,iseq,n_pairs,score='DI'):
+        """Return two lists l1,l2 that contains the indexes of the highest-score pairs.
+        (l1[i],l2[i]) is the i-th pair.
+        This can then be used to plot, print, etc"""
+        if n_pairs==None:
+            n_pairs=self.N*2 # the n. of highest-score pairs to consider. By default is 2x the length of the sequence
+            
+        ### I'm not sure this is the most elegant and correct thing to do to check/select the score option
+        if score=='DI':
+            ix=self.di_order[:n_pairs,0]
+            iy=self.di_order[:n_pairs,1]
+        elif score=='CFN':
+            ix=self.cfn_order[:n_pairs,0]
+            iy=self.cfn_order[:n_pairs,1]
+        else:
+            raise ValueError("Unrecognize score option: '%s'"%score)
+
+        old_ix=ix # Old indeces are saved if one 
+        old_iy=iy #  wants to color based on the score
+        if iseq!=None:
+            assert iseq>=0 and iseq<self.M,'ERROR: invalid sequence ID'
+        ix=self.alignment.align2orig[iseq][self.alignment.strip2align[ix]] # Remapping indexes on 
+        iy=self.alignment.align2orig[iseq][self.alignment.strip2align[iy]] #  the sequence of interest
+
+        old_ix=old_ix[ix>=0] # Here I'm removing
+        old_iy=old_iy[ix>=0] # pairs with negative
+        iy=iy[ix>=0]         # indexes 
+        ix=ix[ix>=0]         # (which correspond 
+        old_ix=old_ix[iy>=0] # to deletions 
+        old_iy=old_iy[iy>=0] # in the seq of interest)
+        ix=ix[iy>=0]         # 
+        iy=iy[iy>=0]         # 
+        return ix,iy,old_ix,old_iy
+
         
-def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=False,offset=0,score='DI'):
+def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=True,offset=0,score='DI'):
     """Prints the contact maps derived from a DCA object.
 
     if iseq>0 will remap the indexes to the original aminoacids of the sequence;
 
-    if ofset>0 will shift the index of the first aminoacid (use it to compare dca on different part of a sequence);
+    if offset>0 will shift the index of the first aminoacid (use it to compare dca on different part of a sequence);
 
     if you want to compare the contacts from two dca objects, just use
 
@@ -328,72 +357,44 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.c
     'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
     'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
 
+    lower_half=True prints the contact map in the bottom-right triangle of the plot,
+    default prints it on top-left side
 """
     ### TODO: how can we change this to plot and compare two contact maps?
     ###       is it better to do it inside the function or outside?
-    ### TODO: be careful with remapping indeces!
-    ###       right now if there are "-" in the sequence considered
-    ###       the indeces are actually counted twice!!
-    if n_pairs==None:
-        n_pairs=dca_obj.N*2
-    ### I'm not sure this is the most elegant and correct thing to do to check/select the score option
-    if score=='DI':
-        ix=dca_obj.di_order[:n_pairs,0]
-        iy=dca_obj.di_order[:n_pairs,1]
-    elif score=='CFN':
-        ix=dca_obj.cfn_order[:n_pairs,0]
-        iy=dca_obj.cfn_order[:n_pairs,1]
-    else:
-        raise ValueError("Unrecognize score option: '%s'"%score)
-    ###
-    old_ix=ix
-    old_iy=iy
-    if iseq!=None:
-        assert iseq>=0 and iseq<dca_obj.M,'ERROR: invalid sequence ID'
-        ix=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[ix]]#+offset
-        iy=dca_obj.alignment.align2orig[iseq][dca_obj.alignment.strip2align[iy]]#+offset
+    ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
+    matr=np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) # matrix of zeros
 
-#    print(ix,iy)
-    old_ix=old_ix[ix>=0]
-    old_iy=old_iy[ix>=0]
-    iy=iy[ix>=0]
-    ix=ix[ix>=0]
-#    print(ix,iy)
-    old_ix=old_ix[iy>=0]
-    old_iy=old_iy[iy>=0]
-    ix=ix[iy>=0]
-    iy=iy[iy>=0]
-    #print(ix,iy)
-
-    matr=np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) ### TODO: here should not be N but the length of the original sequence
-    print(matr.shape)
     if lower_half:
         if binary:
-            matr[[ix,iy]]=1 
+            matr[[ix,iy]]=1 # black and white plot
         else:
+            # color based on the score
             if score=='DI':
                 matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
             if score=='CFN':
                 matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
         iny, inx = np.indices(matr.shape) 
-        my_mask=inx<=iny
+        my_mask=inx<=iny # This will fill only the desired half of the canvas
     else:
         if binary:
-            matr[[iy,ix]]=1
+            matr[[iy,ix]]=1 # black and white plot
         else:
+            # color based on the score
             if score=='DI':
                 matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
             if score=='CFN':
                 matr[[iy,ix]]=dca_obj.CFN[[old_iy,old_ix]]
         iny, inx = np.indices(matr.shape) 
-        my_mask=inx>=iny
-        #plt.scatter(ix,iy,marker='s',s=3,color=colore)
-        #plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',extent=[offset,dca_obj.N+offset,offset,dca_obj.N+offset]) ### TODO: here should not be N but the length of the original sequence
+        my_mask=inx>=iny # This will fill only the desired half of the canvas
+
+    # Now let's plot the contact map...
     plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',\
                extent=[offset,dca_obj.alignment.N_orig[iseq]+offset,\
                        offset,dca_obj.alignment.N_orig[iseq]+offset])
-    plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black') ### TODO: here should not be N but the length of the original sequence
-    return matr
+    # ...and we draw a line on the diagonal, just for fun
+    plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black')
+    return matr # return matrix of contacts if one wants to replot it differently
 
 
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
@@ -403,6 +404,5 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,comp
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
     dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True,get_CFN=compute_CFN)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
-    #dca_obj.get_ordered_di()
     print("=== DCA completed ===")
     return dca_obj
