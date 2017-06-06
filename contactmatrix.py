@@ -210,8 +210,8 @@ class Compare:
 					#print(cpop)
 					if cpop == aligned_sequences[1][nc] and re.match('[A-Z]',aligned_sequences[1][nc]):
 						from_MSA_to_PDB[nMSA] = nPDB
-						from_rMSA_to_PDB[nrMSA] = nPDB
-						from_PDB_to_rMSA[nPDB] = nrMSA
+                                                from_rMSA_to_PDB[nrMSA] = nPDB
+                                                from_PDB_to_rMSA[nPDB] = nrMSA
 						nMSA += 1
 						nrMSA += 1
 						found = True
