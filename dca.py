@@ -396,6 +396,23 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.c
     plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black')
     return matr # return matrix of contacts if one wants to replot it differently
 
+def scatter_contacts(dca_obj1,dca_obj2,n_pairs=(None,None),iseq=(0,0),score='DI'):
+    """Another function to plot dca contacts. This uses a scatterplot and also compare the two contact maps and find the intersection
+    """
+    ### TODO: this can be modified to be used also with a contact map from a PDB structure.
+    ix,iy,old_ix,old_iy=dca_obj1.get_pair_idx(n_pairs=n_pairs[0],iseq=iseq[0],score=score)
+    idx1=np.array((ix,iy)).T
+    ix,iy,old_ix,old_iy=dca_obj2.get_pair_idx(n_pairs=n_pairs[1],iseq=iseq[1],score=score)
+    idx2=np.array((ix,iy)).T
+    idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
+    print('Number common contacts = %d'%(idx_both.shape[0]))
+    print('Fraction of common contacts = %.2f'%(idx_both.shape[0]/(len(idx1)+len(idx2))*2))
+    plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA 1')
+    plt.scatter(idx2[:,1],idx2[:,0],alpha=0.99,s=10,c='green',marker='s',label='DCA 2')
+    plt.scatter(idx_both[:,0],idx_both[:,1],alpha=0.99,s=18,c='red',label='common contacts')
+    plt.scatter(idx_both[:,1],idx_both[:,0],alpha=0.99,s=18,c='red')
+    plt.legend()
+    
 
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
@@ -406,3 +423,4 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,comp
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
     print("=== DCA completed ===")
     return dca_obj
+
