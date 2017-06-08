@@ -155,6 +155,8 @@ class Alignment:
                                    'W':19,\
                                    'Y':20,\
                                    'X':0,\
+                                   'Z':0,\
+                                   'B':0,\
                 }
                 self.numer2letter=list(self.letter2numer.keys())[:-1] # NB: 0 will always be backmapped to "-"
                 
