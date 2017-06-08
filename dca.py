@@ -86,12 +86,24 @@ class DCA:
     def __comp_true_freq(self):
         """Computes reweighted frequency counts"""
         from scipy.spatial.distance import pdist
+        from scipy.spatial.distance import cdist
         from scipy.spatial.distance import squareform
-        W = np.ones(self.M)
+
         align=self.alignment.Z
         if self.theta > 0.0 :
-            cacca=(pdist(align,metric='hamming')<self.theta)
-            W= (1./(1+np.sum(squareform(cacca),axis=0)))
+            W = np.zeros(self.M) 
+            lb=1000 ### TODO: optimize lb
+            Nb=self.M//lb
+            for ib in range(Nb+1):
+                sub_align=align[ib*lb:(ib+1)*lb]
+                cacca=(cdist(align,sub_align,metric='hamming')<self.theta)
+                #cacca=(pdist(align,metric='hamming')<self.theta) ### TODO: this can't be done for large number of sequences...!!!
+                W+=np.sum(cacca,axis=1)
+            #W=1./(1+W)
+            W=1./W
+            #W= (1./(1+np.sum(squareform(cacca),axis=0))) ### ALL THIS IS STUPID FOR LARGE M!!!
+        else:
+            W = np.ones(self.M)                 
         self.Meff=np.sum(W)
 
         self.__Pij = np.zeros((self.N,self.N,self.q,self.q))
@@ -173,9 +185,10 @@ class DCA:
         ### TODO: how do I go back to the lattice-gas Gauge?
         # Remember: invC=-J_ij
         # invC is symmetric in the mfDCA!
-        J_avg=np.average(self.__invC,axis=3)
+        #J_avg=np.average(self.__invC,axis=3)
+        J_avg=np.sum(self.__invC,axis=3)/self.q
         ### Possa dio aver pieta' di noi
-        self.__invC+=np.average(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]\
+        self.__invC+=np.sum(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]/self.q\
                       -J_avg[:,:,:,np.newaxis]\
                       -np.transpose(J_avg,axes=(0,2,1))[:,np.newaxis,:,:]
         self.gauge='Ising'
@@ -189,8 +202,10 @@ class DCA:
             self.__to_ising_gauge()
         self.CFN=np.sqrt(np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
         ### TODO: is CFN symmetric??
-        F_sum=np.sum(self.CFN,axis=0)
-        self.CFN-=F_sum[:,np.newaxis]*F_sum[np.newaxis,:]/np.sum(F_sum)
+        #F_sum=np.sum(self.CFN,axis=0)
+        F_avg=np.average(self.CFN,axis=0)
+        #self.CFN-=F_sum[:,np.newaxis]*F_sum[np.newaxis,:]/np.sum(F_sum)
+        self.CFN-=F_avg[:,np.newaxis]*F_avg[np.newaxis,:]/np.average(F_avg)
         
     def __bp_link(self,i,j):
         """Computes direct information"""
@@ -396,23 +411,6 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.c
     plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black')
     return matr # return matrix of contacts if one wants to replot it differently
 
-def scatter_contacts(dca_obj1,dca_obj2,n_pairs=(None,None),iseq=(0,0),score='DI'):
-    """Another function to plot dca contacts. This uses a scatterplot and also compare the two contact maps and find the intersection
-    """
-    ### TODO: this can be modified to be used also with a contact map from a PDB structure.
-    ix,iy,old_ix,old_iy=dca_obj1.get_pair_idx(n_pairs=n_pairs[0],iseq=iseq[0],score=score)
-    idx1=np.array((ix,iy)).T
-    ix,iy,old_ix,old_iy=dca_obj2.get_pair_idx(n_pairs=n_pairs[1],iseq=iseq[1],score=score)
-    idx2=np.array((ix,iy)).T
-    idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
-    print('Number common contacts = %d'%(idx_both.shape[0]))
-    print('Fraction of common contacts = %.2f'%(idx_both.shape[0]/(len(idx1)+len(idx2))*2))
-    plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA 1')
-    plt.scatter(idx2[:,1],idx2[:,0],alpha=0.99,s=10,c='green',marker='s',label='DCA 2')
-    plt.scatter(idx_both[:,0],idx_both[:,1],alpha=0.99,s=18,c='red',label='common contacts')
-    plt.scatter(idx_both[:,1],idx_both[:,0],alpha=0.99,s=18,c='red')
-    plt.legend()
-    
 
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
@@ -423,4 +421,3 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,comp
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
     print("=== DCA completed ===")
     return dca_obj
-

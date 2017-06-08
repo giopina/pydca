@@ -133,6 +133,7 @@ class Alignment:
                 """
                 self.letter2numer={\
                 # full AA alphabet
+                # TODO: check all the possible letters not in the 20 aa... Maybe this is just stupid...
                                    '-':0 ,\
                                    'A':1 ,\
                                    'C':2 ,\
