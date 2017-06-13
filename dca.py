@@ -39,7 +39,6 @@
 
 import numpy as np
 import support_functions as sf
-import matplotlib.pyplot as plt # TODO: where should this go? here or in the plot function?
 
 class DCA:
     """Class DCA:
@@ -225,6 +224,7 @@ class DCA:
 
     def __comp_di(self,i,j,W, mu1,mu2):
         """computes direct information"""
+        ### TODO: change the function's name (same as another function...)
         tiny = 1.0e-100
         Pdir = W*np.dot(mu1.T,mu2)
         Pdir = Pdir / np.sum(Pdir)
@@ -339,80 +339,6 @@ class DCA:
         ix=ix[iy>=0]         # 
         iy=iy[iy>=0]         # 
         return ix,iy,old_ix,old_iy
-
-        
-def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=True,offset=0,score='DI'):
-    """Prints the contact maps derived from a DCA object.
-
-    if iseq>0 will remap the indexes to the original aminoacids of the sequence;
-
-    if offset>0 will shift the index of the first aminoacid (use it to compare dca on different part of a sequence);
-
-    if you want to compare the contacts from two dca objects, just use
-
-        plot_contacts(dca_obj1)
-        plot_contacts(dca_obj2,lower_half=True)
-
-    score options:
-    'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
-    'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
-
-    lower_half=True prints the contact map in the bottom-right triangle of the plot,
-    default prints it on top-left side
-"""
-    ### TODO: how can we change this to plot and compare two contact maps?
-    ###       is it better to do it inside the function or outside?
-    ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
-    matr=np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) # matrix of zeros
-
-    if lower_half:
-        if binary:
-            matr[[ix,iy]]=1 # black and white plot
-        else:
-            # color based on the score
-            if score=='DI':
-                matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
-            if score=='CFN':
-                matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
-        iny, inx = np.indices(matr.shape) 
-        my_mask=inx<=iny # This will fill only the desired half of the canvas
-    else:
-        if binary:
-            matr[[iy,ix]]=1 # black and white plot
-        else:
-            # color based on the score
-            if score=='DI':
-                matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
-            if score=='CFN':
-                matr[[iy,ix]]=dca_obj.CFN[[old_iy,old_ix]]
-        iny, inx = np.indices(matr.shape) 
-        my_mask=inx>=iny # This will fill only the desired half of the canvas
-
-    # Now let's plot the contact map...
-    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',\
-               extent=[offset,dca_obj.alignment.N_orig[iseq]+offset,\
-                       offset,dca_obj.alignment.N_orig[iseq]+offset])
-    # ...and we draw a line on the diagonal, just for fun
-    plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black')
-    return matr # return matrix of contacts if one wants to replot it differently
-
-def scatter_contacts(dca_obj1,dca_obj2,n_pairs=(None,None),iseq=(0,0),score='DI'):
-    """Another function to plot dca contacts. This uses a scatterplot and also compare the two contact maps and find the intersection
-    """
-    ### TODO: this can be modified to be used also with a contact map from a PDB structure.
-    ix,iy,old_ix,old_iy=dca_obj1.get_pair_idx(n_pairs=n_pairs[0],iseq=iseq[0],score=score)
-    idx1=np.array((ix,iy)).T
-    ix,iy,old_ix,old_iy=dca_obj2.get_pair_idx(n_pairs=n_pairs[1],iseq=iseq[1],score=score)
-    idx2=np.array((ix,iy)).T
-    idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
-    print('Number common contacts = %d'%(idx_both.shape[0]))
-    print('Fraction of common contacts = %.2f'%(idx_both.shape[0]/(len(idx1)+len(idx2))*2))
-    plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA 1')
-    plt.scatter(idx2[:,1],idx2[:,0],alpha=0.99,s=10,c='green',marker='s',label='DCA 2')
-    plt.scatter(idx_both[:,0],idx_both[:,1],alpha=0.99,s=18,c='red',label='common contacts')
-    plt.scatter(idx_both[:,1],idx_both[:,0],alpha=0.99,s=18,c='red')
-    plt.legend()
-    
 
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""

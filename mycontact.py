@@ -1,5 +1,6 @@
 import mdtraj
 import numpy as np
+#import dca
 
 class pdb_contacts:
 
@@ -13,7 +14,6 @@ class pdb_contacts:
         # not using this but maybe someday can be useful
         #cc=mdtraj.geometry.squareform(dd,rp)
 
-    def get_pair_idx(self.cutoff=0.5):
+    def get_pair_idx(self,cutoff=0.5):
         return self.rp[self.dd[0]<cutoff,0],self.rp[self.dd[0]<cutoff,1]
-
 
