@@ -1,6 +1,6 @@
 import re
 import datetime
-import numpy as np
+import numpy as _np
 
 def write_log(name, text):
         """ Quietly writes a log """
@@ -167,19 +167,19 @@ class Alignment:
                         raise_error(this_name,"ERROR: aligned sequences have different lengths!")
                 self.N_align=len(self.sequences[0]) # this is the lenght of each aligned sequences
 
-                self.orig2align=[np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                self.orig2align=[_np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
                 ### the following def tranform gaps in the index of the previous non-gap (not a very good choice)
-                #self.align2orig=[np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                #self.align2orig=[_np.cumsum([i!='-' and i!='.' for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
                 ### the following instead transform gaps into -1s (hopefully)
-                self.align2orig=[np.ones(self.N_align,dtype=np.int32)*-1 for i in range(self.M)]
+                self.align2orig=[_np.ones(self.N_align,dtype=_np.int32)*-1 for i in range(self.M)]
                 self.N_orig=[]
                 #for iseq,seq in enumerate(self.sequences):
                 for iseq in range(self.M):
-                        #n_orig=np.sum([i!='-' and i!='.' for i in seq])
+                        #n_orig=_np.sum([i!='-' and i!='.' for i in seq])
                         n_orig=len(self.orig2align[iseq])
                         self.N_orig.append(n_orig)
-                        #self.align2orig[iseq][np.where([i!='-' and i!='.' for i in seq])[0]]=np.arange(n_orig)
-                        self.align2orig[iseq][self.orig2align[iseq]]=np.arange(n_orig)
+                        #self.align2orig[iseq][_np.where([i!='-' and i!='.' for i in seq])[0]]=_np.arange(n_orig)
+                        self.align2orig[iseq][self.orig2align[iseq]]=_np.arange(n_orig)
                 
                 self.__strip()
                 
@@ -195,17 +195,17 @@ class Alignment:
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
 
                 ### these two lists of lists are redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
-                #self.strip2align=[np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                #self.align2strip=[np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
-                self.strip2align=np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]
-                #self.align2strip=np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
-                self.align2strip=np.ones(self.N_align,dtype=np.int32)*-1
-                self.align2strip[np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]]=np.arange(self.N)
+                #self.strip2align=[_np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                #self.align2strip=[_np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                self.strip2align=_np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]
+                #self.align2strip=_np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
+                self.align2strip=_np.ones(self.N_align,dtype=_np.int32)*-1
+                self.align2strip[_np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]]=_np.arange(self.N)
                 ###
 
-                self.Z=np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN np.array with the stripped sequences as number # TODO: this is probably not so efficient but who cares
+                self.Z=_np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN _np.array with the stripped sequences as number # TODO: this is probably not so efficient but who cares
 
-                self.q=np.max(self.Z)+1 # for proteins is always 21, but we can keep it general in case somebody wants to use RNA
+                self.q=_np.max(self.Z)+1 # for proteins is always 21, but we can keep it general in case somebody wants to use RNA
 
 
         def get_dict(self):
@@ -242,7 +242,7 @@ It may look useless. And it probably is."""
 
         def get_original_seq(self,iseq):
                 """Returns a specific original sequence form the alignment"""
-                seq=np.array(list(self.sequences[iseq]))
+                seq=_np.array(list(self.sequences[iseq]))
                 orig_seq=''.join(seq[self.orig2align[iseq]])
                 return orig_seq
         
