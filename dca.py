@@ -37,9 +37,8 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-import numpy as np
-import support_functions as sf
-import matplotlib.pyplot as plt # TODO: where should this go? here or in the plot function?
+import numpy as _np
+import support_functions as _sf
 
 class DCA:
     """Class DCA:
@@ -106,26 +105,26 @@ class DCA:
             W = np.ones(self.M)                 
         self.Meff=np.sum(W)
 
-        self.__Pij = np.zeros((self.N,self.N,self.q,self.q))
-        self.__Pi = np.zeros((self.N,self.q))
+        self.__Pij = _np.zeros((self.N,self.N,self.q,self.q))
+        self.__Pi = _np.zeros((self.N,self.q))
 
         for a in range(self.q):
-            self.__Pi[:,a]=np.sum(((align==a)*W[:,np.newaxis]),axis=0)
+            self.__Pi[:,a]=_np.sum(((align==a)*W[:,_np.newaxis]),axis=0)
         self.__Pi/=self.Meff
 
         for a in range(self.q):
             for b in range(self.q):
-                self.__Pij[:,:,a,b]+=np.tensordot((align==a)*W[:,np.newaxis],(align==b),axes=(0,0))
+                self.__Pij[:,:,a,b]+=_np.tensordot((align==a)*W[:,_np.newaxis],(align==b),axes=(0,0))
         self.__Pij = self.__Pij/self.Meff
             
     def __add_pseudocounts(self):
         """Adds pseudocounts to the observed mutation frequencies"""
         self.__Pi = (1.-self.pseudocount_weight)*self.__Pi +\
-                  self.pseudocount_weight/self.q*np.ones((self.N,self.q))
+                  self.pseudocount_weight/self.q*_np.ones((self.N,self.q))
         Pij_diag=self.__Pij[range(self.N),range(self.N),:,:]
         self.__Pij = (1.-self.pseudocount_weight)*self.__Pij +\
-                   self.pseudocount_weight/self.q/self.q*np.ones((self.N,self.N,self.q,self.q))
-        scra = np.eye(self.q)
+                   self.pseudocount_weight/self.q/self.q*_np.ones((self.N,self.N,self.q,self.q))
+        scra = _np.eye(self.q)
         for i in range(self.N):
             self.__Pij[i,i,:,:] = (1.-self.pseudocount_weight)*Pij_diag[i,:,:] +\
                             self.pseudocount_weight/self.q*scra
@@ -133,10 +132,10 @@ class DCA:
     def __comp_C(self):
         """Computes correlation matrix and its inverse"""
         ### Remember remember... I'm excluding A,B = q (see PNAS SI, pg 2, column 2)
-        C=np.transpose(\
+        C=_np.transpose(\
                             self.__Pij[:,:,:-1,:-1] -\
-                            self.__Pi[:,np.newaxis,:-1,np.newaxis]*\
-                            self.__Pi[np.newaxis,:,np.newaxis,:-1],\
+                            self.__Pi[:,_np.newaxis,:-1,_np.newaxis]*\
+                            self.__Pi[_np.newaxis,:,_np.newaxis,:-1],\
                             axes=(0,2,1,3))
         del self.__Pij
         ### NB: the order of the indexes in C is different from __Pij, this is needed for tensorinv. TODO: think if it's better to use the same order of indexes for every array
@@ -147,7 +146,7 @@ class DCA:
     def __comp_MI(self):
         """Computes the mutual information"""
         ### TODO: there should be a smarter way of storing and accessing these symmetric matrices using only half the space
-        self.mutual_information=np.zeros((self.N,self.N))
+        self.mutual_information=_np.zeros((self.N,self.N))
         for i in range(self.N-1):
             for j in range(i+1,self.N):
                 # mutual information
@@ -165,14 +164,14 @@ class DCA:
         for alpha in range(self.q):
             for beta in range(self.q):
                 if self.__Pij[i,j,alpha,beta]>0:
-                    M = M + self.__Pij[i,j,alpha, beta]*np.log(self.__Pij[i,j, alpha, beta] / self.__Pi[i,alpha]/self.__Pi[j,beta])
+                    M = M + self.__Pij[i,j,alpha, beta]*_np.log(self.__Pij[i,j, alpha, beta] / self.__Pi[i,alpha]/self.__Pi[j,beta])
         return M
           
     def __comp_DI(self):
         """Computes Direct Information"""
         ### TODO: implement other DCAmethods
         ### TODO: there should be a smarter way of storing and accessing these symmetric matrices using only half the space
-        self.direct_information=np.zeros((self.N,self.N))
+        self.direct_information=_np.zeros((self.N,self.N))
         ### TODO: this loops are not very python friendly. There might be a fastest way...
         for i in range(self.N-1):
             for j in range(i+1,self.N):
@@ -200,7 +199,7 @@ class DCA:
         ### TODO: CFN can be negative? Check this!
         if self.gauge!='Ising':
             self.__to_ising_gauge()
-        self.CFN=np.sqrt(np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
+        self.CFN=_np.sqrt(_np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
         ### TODO: is CFN symmetric??
         #F_sum=np.sum(self.CFN,axis=0)
         F_avg=np.average(self.CFN,axis=0)
@@ -209,8 +208,8 @@ class DCA:
         
     def __bp_link(self,i,j):
         """Computes direct information"""
-        W_mf=np.ones((self.q,self.q))
-        W_mf[:-1,:-1]= np.exp( -self.__invC[i,:,j,:] )
+        W_mf=_np.ones((self.q,self.q))
+        W_mf[:-1,:-1]= _np.exp( -self.__invC[i,:,j,:] )
         mu1, mu2 = self.__comp_mu(i,j,W_mf);
         DI = self.__comp_di(i,j,W_mf, mu1,mu2);
         return DI
@@ -219,42 +218,43 @@ class DCA:
         ### not sure what this is doing
         epsilon=1e-4
         diff =1.0
-        mu1 = np.ones((1,self.q))/self.q
-        mu2 = np.ones((1,self.q))/self.q
+        mu1 = _np.ones((1,self.q))/self.q
+        mu2 = _np.ones((1,self.q))/self.q
         pi = self.__Pi[i,:]
         pj = self.__Pi[j,:]
 
         while ( diff > epsilon ):
             ### TODO: add a counter and a maxiter parameter?
-            scra1 = np.dot(mu2, W.T)
-            scra2 = np.dot(mu1, W)
+            scra1 = _np.dot(mu2, W.T)
+            scra2 = _np.dot(mu1, W)
             new1 = pi/scra1
-            new1 /=np.sum(new1)
+            new1 /=_np.sum(new1)
             new2 = pj/scra2
-            new2 /= np.sum(new2)
+            new2 /= _np.sum(new2)
 
-            diff = max( (np.abs( new1-mu1 )).max(), (np.abs( new2-mu2 )).max() )
+            diff = max( (_np.abs( new1-mu1 )).max(), (_np.abs( new2-mu2 )).max() )
             mu1 = new1
             mu2 = new2
         return mu1,mu2
 
     def __comp_di(self,i,j,W, mu1,mu2):
         """computes direct information"""
+        ### TODO: change the function's name (same as another function...)
         tiny = 1.0e-100
-        Pdir = W*np.dot(mu1.T,mu2)
-        Pdir = Pdir / np.sum(Pdir)
-        Pfac = self.__Pi[i,:][:,np.newaxis]*self.__Pi[j,:][np.newaxis,:]
+        Pdir = W*_np.dot(mu1.T,mu2)
+        Pdir = Pdir / _np.sum(Pdir)
+        Pfac = self.__Pi[i,:][:,_np.newaxis]*self.__Pi[j,:][_np.newaxis,:]
         ### TODO why trace? Shouldn't it be the sum over all elements?
         ###      apparently there is a mathematical reason for it
-        DI = np.trace(\
-                      np.dot(Pdir.T , np.log((Pdir+tiny)/(Pfac+tiny)) ) \
+        DI = _np.trace(\
+                      _np.dot(Pdir.T , _np.log((Pdir+tiny)/(Pfac+tiny)) ) \
         )
         return DI
 
     def get_ordered_di(self,k_pairs=None,offdiag=4,return_di=False):
         """Sort the pairs by their direct information"""
-        faraway=np.triu_indices(self.N,k=offdiag)
-        self.di_order=(np.array(faraway).T[np.argsort(self.direct_information[faraway])])[::-1]
+        faraway=_np.triu_indices(self.N,k=offdiag)
+        self.di_order=(_np.array(faraway).T[_np.argsort(self.direct_information[faraway])])[::-1]
         if return_di:
             if k_pairs==None:
                 k_pairs=self.N*2
@@ -262,8 +262,8 @@ class DCA:
 
     def get_ordered_cfn(self,k_pairs=None,offdiag=4,return_score=False):
         """Sort the pairs by their Frobenius norm score"""
-        faraway=np.triu_indices(self.N,k=offdiag)
-        self.cfn_order=(np.array(faraway).T[np.argsort(self.CFN[faraway])])[::-1]
+        faraway=_np.triu_indices(self.N,k=offdiag)
+        self.cfn_order=(_np.array(faraway).T[_np.argsort(self.CFN[faraway])])[::-1]
         if return_score:
             if k_pairs==None:
                 k_pairs=self.N*2
@@ -355,67 +355,10 @@ class DCA:
         iy=iy[iy>=0]         # 
         return ix,iy,old_ix,old_iy
 
-        
-def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=plt.cm.CMRmap_r,binary=True,offset=0,score='DI'):
-    """Prints the contact maps derived from a DCA object.
-
-    if iseq>0 will remap the indexes to the original aminoacids of the sequence;
-
-    if offset>0 will shift the index of the first aminoacid (use it to compare dca on different part of a sequence);
-
-    if you want to compare the contacts from two dca objects, just use
-
-        plot_contacts(dca_obj1)
-        plot_contacts(dca_obj2,lower_half=True)
-
-    score options:
-    'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
-    'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
-
-    lower_half=True prints the contact map in the bottom-right triangle of the plot,
-    default prints it on top-left side
-"""
-    ### TODO: how can we change this to plot and compare two contact maps?
-    ###       is it better to do it inside the function or outside?
-    ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
-    matr=np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) # matrix of zeros
-
-    if lower_half:
-        if binary:
-            matr[[ix,iy]]=1 # black and white plot
-        else:
-            # color based on the score
-            if score=='DI':
-                matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
-            if score=='CFN':
-                matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
-        iny, inx = np.indices(matr.shape) 
-        my_mask=inx<=iny # This will fill only the desired half of the canvas
-    else:
-        if binary:
-            matr[[iy,ix]]=1 # black and white plot
-        else:
-            # color based on the score
-            if score=='DI':
-                matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
-            if score=='CFN':
-                matr[[iy,ix]]=dca_obj.CFN[[old_iy,old_ix]]
-        iny, inx = np.indices(matr.shape) 
-        my_mask=inx>=iny # This will fill only the desired half of the canvas
-
-    # Now let's plot the contact map...
-    plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',\
-               extent=[offset,dca_obj.alignment.N_orig[iseq]+offset,\
-                       offset,dca_obj.alignment.N_orig[iseq]+offset])
-    # ...and we draw a line on the diagonal, just for fun
-    plt.plot(range(dca_obj.alignment.N_orig[iseq]),color='black')
-    return matr # return matrix of contacts if one wants to replot it differently
-
-
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
-    alignment=sf.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
+    alignment=_sf.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
     dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True,get_CFN=compute_CFN)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
