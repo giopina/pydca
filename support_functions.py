@@ -211,10 +211,13 @@ class Alignment:
                 self.q=_np.max(self.Z)+1 # for proteins is always 21, but we can keep it general in case somebody wants to use RNA
 
 
-        def get_dict(self):
+        def get_dict(self,stripped=False):
                 """This creates a dictionary of names and sequences (analogous to the input of the constructor).
 It may look useless. And it probably is."""
-                fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,self.sequences)]
+                if not stripped:
+                        fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,self.sequences)]
+                else:
+                        fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,self.stripped_seqs)]
                 return fasta_list
 
         def filter_gaps(self,limit):
@@ -264,7 +267,40 @@ It may look useless. And it probably is."""
                 if len(results)>1:
                         print("WARNING: there are %d sequences that match the one you provided. Maybe you have identical sequences in the alignment?"%len(results))
                         return results
-        
+
+
+        def find_name(self,name):
+                """Looks through the alignment to find a sequence with a given name. Returns the corresponding index, name and aligned sequence."""
+                results=[] ### can we have more than one sequences that match the query?
+                for i,n in enumerate(self.names):
+                        if name in n:
+                                results.append((i,n,self.stripped_seqs[i]))
+                if len(results)==0:
+                        return False
+                if len(results)==1:
+                        return results[0]
+                if len(results)>1:
+                        print("WARNING: there are %d sequences that match the one you provided. Maybe you have identical sequences in the alignment?"%len(results))
+                        return results
+
+        def write_alignment(self,filename,mode='stripped'):
+                fh=open(filename,'w')
+                if mode=='stripped':
+                        for n,s in zip(self.names,self.stripped_seqs):
+                                fh.write(">%s\n%s\n"%(n,s))
+                        fh.close()
+                        return True
+                if mode=='aligned':
+                        for n,s in zip(self.names,self.sequences):
+                                fh.write(">%s\n%s\n"%(n,s))
+                        fh.close()
+                        return True
+                else:
+                        print("ERROR: mode '%s' not supported"%mode)
+                        fh.close()
+                        return False
+                
+
 def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nucleicacid=False):
         """Reads an alignment from a .fasta format file and returns an Alignment object"""
         fasta_list=FASTA_parser(inputfile,check_aminoacid=check_aminoacid,check_nucleicacid=check_nucleicacid)
