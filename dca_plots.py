@@ -80,7 +80,7 @@ def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5):
     """Function to plot dca/pdb contacts. This uses a scatterplot and also compares the two contact maps and find the intersection.
     """
     ### Very not tested
-    ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs[0],iseq=iseq[0],score=score)
+    ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
     idx1=_np.array((ix,iy)).T
     ix,iy=pdb_obj.get_pair_idx(cutoff=cutoff)
     idx2=_np.array((ix,iy)).T
@@ -88,6 +88,7 @@ def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5):
     print( 'Number common contacts = %d' % (idx_both.shape[0]) )
     print( 'Common contacts / DCA pairs = %.2f' % \
           (idx_both.shape[0]/len(idx1)) )
+    _plt.figure(figsize=(10,10))
     _plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA')
     _plt.scatter(idx2[:,1],idx2[:,0],alpha=0.99,s=10,c='green',marker='s',label='PDB')
     _plt.scatter(idx_both[:,0],idx_both[:,1],alpha=0.99,s=18,c='red',label='common contacts')

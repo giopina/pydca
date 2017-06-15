@@ -50,20 +50,23 @@ def plot_gap_len(alin):
     plt.plot(b[:-1],n/alin.M,ls='',marker='x')
     plt.yscale('log')
 
-def insert_gaps(alin,gap_len,gap_num,seed=12345):
+def insert_gaps(alin,gap_len,gap_num,seed=12345,save_seq=None):
     """
     This function inserts stretches of gaps in a given alignment. 
     gap_len is the length of the gap stretches you want to insert.
     gap_num is how many of these stretches you want to insert (so total number of gaps is actually gap_len*gap_num):
     It inserts the stretches in random sequences at random positions.
     Returns a new alignment object.
+    save_seq should be an index of a sequence you don't want to modify (if any).
     """
     fasta_list=alin.get_dict(stripped=True)
     np.random.seed(12345)
     for k in range(gap_num):
         iseq=np.random.randint(0,high=alin.M)
+        if iseq==save_seq:
+            continue
         ipos=np.random.randint(0,high=alin.N-gap_len)
         fasta_list[iseq]['sequence']=fasta_list[iseq]['sequence'][:ipos]+\
                                       '-'*gap_len+fasta_list[iseq]['sequence'][ipos+gap_len:]
-        new_alignment=sf.Alignment(fasta_list)
-        return new_alignment
+    new_alignment=sf.Alignment(fasta_list)
+    return new_alignment

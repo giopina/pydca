@@ -39,7 +39,7 @@
 
 import numpy as _np
 import support_functions as _sf
-
+import time
 class DCA:
     """Class DCA:
     direct coupling analysis"""
@@ -55,39 +55,49 @@ class DCA:
         self.N=self.alignment.N # length of seq
         self.M=self.alignment.M # Number of seqa
         self.q=self.alignment.q # N. on aminoacids+gap
+        t0=time.time()
+        t0tot=time.time()
         print("computing true frequencies...")
         self.__comp_true_freq()
+        print("time elapsed = %.2f s"%(time.time()-t0))
         if get_MI:
             print("computing mutual information, MI")
             self.__comp_MI()
         # pseudocounts to avoid singularities due to elements equal to zero
         print("adding pseudocounts")
+        t0=time.time()
         self.__add_pseudocounts()
+        print("time elapsed = %.2f s"%(time.time()-t0))
         # mean-field approximation: the inversion of the correlation matrix approximates the couplings
         print("computing and inverting correlation matrix, C")
+        t0=time.time()
         self.__comp_C()
+        print("time elapsed = %.2f s"%(time.time()-t0))
         # Direct information DI measures the coupling score of each pair
         if get_DI:
             print("computing direct information, DI")
+            t0=time.time()
             self.__comp_DI()
             self.get_ordered_di()
-        print("Done!")
+            print("time elapsed = %.2f s"%(time.time()-t0))
         # The corrected Frobenius norm is another possible score
         if get_CFN:
             print("computing corrected Frobenius norm")
+            t0=time.time()
             self.__comp_CFN()
             self.get_ordered_cfn()
+            print("time elapsed = %.2f s"%(time.time()-t0))
             
         del self.__invC ### TODO: maybe sometimes one wants to save it?
         del self.__Pi   ### 
-
+        print("Done!\n Total time = %.2f s"%(time.time()-t0tot))
             
     def __comp_true_freq(self):
         """Computes reweighted frequency counts"""
         from scipy.spatial.distance import pdist
         from scipy.spatial.distance import cdist
         from scipy.spatial.distance import squareform
-
+        t0=time.time()
         align=self.alignment.Z
         if self.theta > 0.0 :
             W = _np.zeros(self.M) 
@@ -96,27 +106,31 @@ class DCA:
             for ib in range(Nb+1):
                 sub_align=align[ib*lb:(ib+1)*lb]
                 cacca=(cdist(align,sub_align,metric='hamming')<self.theta)
-                #cacca=(pdist(align,metric='hamming')<self.theta) ### TODO: this can't be done for large number of sequences...!!!
                 W+=_np.sum(cacca,axis=1)
-            #W=1./(1+W)
+
             W=1./W
-            #W= (1./(1+np.sum(squareform(cacca),axis=0))) ### ALL THIS IS STUPID FOR LARGE M!!!
         else:
             W = _np.ones(self.M)                 
         self.Meff=_np.sum(W)
+        print(" --- t1=%.2f"%(time.time()-t0))
+        t0=time.time()
 
+        
         self.__Pij = _np.zeros((self.N,self.N,self.q,self.q))
         self.__Pi = _np.zeros((self.N,self.q))
 
         for a in range(self.q):
             self.__Pi[:,a]=_np.sum(((align==a)*W[:,_np.newaxis]),axis=0)
         self.__Pi/=self.Meff
+        print(" --- t1=%.2f"%(time.time()-t0))
+        t0=time.time()
 
         for a in range(self.q):
             for b in range(self.q):
                 self.__Pij[:,:,a,b]+=_np.tensordot((align==a)*W[:,_np.newaxis],(align==b),axes=(0,0))
         self.__Pij = self.__Pij/self.Meff
-            
+        print(" --- t1=%.2f"%(time.time()-t0))
+    
     def __add_pseudocounts(self):
         """Adds pseudocounts to the observed mutation frequencies"""
         self.__Pi = (1.-self.pseudocount_weight)*self.__Pi +\
@@ -342,8 +356,8 @@ class DCA:
         old_iy=iy #  wants to color based on the score
         if iseq!=None:
             assert iseq>=0 and iseq<self.M,'ERROR: invalid sequence ID'
-        ix=self.alignment.align2orig[iseq][self.alignment.strip2align[ix]] # Remapping indexes on 
-        iy=self.alignment.align2orig[iseq][self.alignment.strip2align[iy]] #  the sequence of interest
+        ix=self.alignment.align2orig[iseq][self.alignment.strip2align[old_ix]] # Remapping indexes on 
+        iy=self.alignment.align2orig[iseq][self.alignment.strip2align[old_iy]] #  the sequence of interest
 
         old_ix=old_ix[ix>=0] # Here I'm removing
         old_iy=old_iy[ix>=0] # pairs with negative
