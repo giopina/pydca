@@ -90,20 +90,20 @@ class DCA:
 
         align=self.alignment.Z
         if self.theta > 0.0 :
-            W = np.zeros(self.M) 
+            W = _np.zeros(self.M) 
             lb=1000 ### TODO: optimize lb
             Nb=self.M//lb
             for ib in range(Nb+1):
                 sub_align=align[ib*lb:(ib+1)*lb]
                 cacca=(cdist(align,sub_align,metric='hamming')<self.theta)
                 #cacca=(pdist(align,metric='hamming')<self.theta) ### TODO: this can't be done for large number of sequences...!!!
-                W+=np.sum(cacca,axis=1)
+                W+=_np.sum(cacca,axis=1)
             #W=1./(1+W)
             W=1./W
             #W= (1./(1+np.sum(squareform(cacca),axis=0))) ### ALL THIS IS STUPID FOR LARGE M!!!
         else:
-            W = np.ones(self.M)                 
-        self.Meff=np.sum(W)
+            W = _np.ones(self.M)                 
+        self.Meff=_np.sum(W)
 
         self.__Pij = _np.zeros((self.N,self.N,self.q,self.q))
         self.__Pi = _np.zeros((self.N,self.q))
@@ -185,11 +185,11 @@ class DCA:
         # Remember: invC=-J_ij
         # invC is symmetric in the mfDCA!
         #J_avg=np.average(self.__invC,axis=3)
-        J_avg=np.sum(self.__invC,axis=3)/self.q
+        J_avg=_np.sum(self.__invC,axis=3)/self.q
         ### Possa dio aver pieta' di noi
-        self.__invC+=np.sum(J_avg,axis=1)[:,np.newaxis,:,np.newaxis]/self.q\
-                      -J_avg[:,:,:,np.newaxis]\
-                      -np.transpose(J_avg,axes=(0,2,1))[:,np.newaxis,:,:]
+        self.__invC+=_np.sum(J_avg,axis=1)[:,_np.newaxis,:,_np.newaxis]/self.q\
+                      -J_avg[:,:,:,_np.newaxis]\
+                      -_np.transpose(J_avg,axes=(0,2,1))[:,_np.newaxis,:,:]
         self.gauge='Ising'
                       
         
@@ -202,9 +202,9 @@ class DCA:
         self.CFN=_np.sqrt(_np.sum(self.__invC**2,axis=(1,3))) # NB: invC^2 so the sign doesn't matter
         ### TODO: is CFN symmetric??
         #F_sum=np.sum(self.CFN,axis=0)
-        F_avg=np.average(self.CFN,axis=0)
+        F_avg=_np.average(self.CFN,axis=0)
         #self.CFN-=F_sum[:,np.newaxis]*F_sum[np.newaxis,:]/np.sum(F_sum)
-        self.CFN-=F_avg[:,np.newaxis]*F_avg[np.newaxis,:]/np.average(F_avg)
+        self.CFN-=F_avg[:,_np.newaxis]*F_avg[_np.newaxis,:]/_np.average(F_avg)
         
     def __bp_link(self,i,j):
         """Computes direct information"""

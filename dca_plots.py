@@ -1,6 +1,7 @@
 import dca as _dca
 import mycontact as _mc
 import matplotlib.pyplot as _plt
+import numpy as _np
         
 def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.cm.CMRmap_r,binary=True,offset=0,score='DI'):
     """Prints the contact maps derived from a DCA object.
@@ -24,7 +25,7 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.
     ### TODO: how can we change this to plot and compare two contact maps?
     ###       is it better to do it inside the function or outside?
     ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
-    matr=np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) # matrix of zeros
+    matr=_np.zeros((dca_obj.alignment.N_orig[iseq],dca_obj.alignment.N_orig[iseq])) # matrix of zeros
 
     if lower_half:
         if binary:
@@ -35,7 +36,7 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.
                 matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
             if score=='CFN':
                 matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
-        iny, inx = np.indices(matr.shape) 
+        iny, inx = _np.indices(matr.shape) 
         my_mask=inx<=iny # This will fill only the desired half of the canvas
     else:
         if binary:
@@ -46,11 +47,11 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.
                 matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
             if score=='CFN':
                 matr[[iy,ix]]=dca_obj.CFN[[old_iy,old_ix]]
-        iny, inx = np.indices(matr.shape) 
+        iny, inx = _np.indices(matr.shape) 
         my_mask=inx>=iny # This will fill only the desired half of the canvas
 
     # Now let's plot the contact map...
-    _plt.imshow(np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',\
+    _plt.imshow(_np.ma.array(matr,mask=my_mask),cmap=colormap,origin='lower',\
                extent=[offset,dca_obj.alignment.N_orig[iseq]+offset,\
                        offset,dca_obj.alignment.N_orig[iseq]+offset])
     # ...and we draw a line on the diagonal, just for fun
@@ -62,10 +63,10 @@ def scatter_contacts(dca_obj1,dca_obj2,n_pairs=(None,None),iseq=(0,0),score='DI'
     """
     ### TODO: this can be modified to be used also with a contact map from a PDB structure.
     ix,iy,old_ix,old_iy=dca_obj1.get_pair_idx(n_pairs=n_pairs[0],iseq=iseq[0],score=score)
-    idx1=np.array((ix,iy)).T
+    idx1=_np.array((ix,iy)).T
     ix,iy,old_ix,old_iy=dca_obj2.get_pair_idx(n_pairs=n_pairs[1],iseq=iseq[1],score=score)
-    idx2=np.array((ix,iy)).T
-    idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
+    idx2=_np.array((ix,iy)).T
+    idx_both=_np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
     print('Number common contacts = %d'%(idx_both.shape[0]))
     print('Fraction of common contacts = %.2f'%(idx_both.shape[0]/(len(idx1)+len(idx2))*2))
     _plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA 1')
@@ -80,10 +81,10 @@ def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5):
     """
     ### Very not tested
     ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs[0],iseq=iseq[0],score=score)
-    idx1=np.array((ix,iy)).T
+    idx1=_np.array((ix,iy)).T
     ix,iy=pdb_obj.get_pair_idx(cutoff=cutoff)
-    idx2=np.array((ix,iy)).T
-    idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
+    idx2=_np.array((ix,iy)).T
+    idx_both=_np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
     print( 'Number common contacts = %d' % (idx_both.shape[0]) )
     print( 'Common contacts / DCA pairs = %.2f' % \
           (idx_both.shape[0]/len(idx1)) )
