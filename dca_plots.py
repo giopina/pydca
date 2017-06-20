@@ -98,6 +98,7 @@ def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5,pdb_
         iy_new=iy
     idx2=np.array((ix,iy)).T
     idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
+    ### TODO: up to here this is the same as mycontacts.py->compareDCAandPDB, so maybe they can be merged together somehow...
     print( 'Number common contacts = %d' % (idx_both.shape[0]) )
     print( 'Common contacts / DCA pairs = %.2f' % \
            (idx_both.shape[0]/len(idx1)) )
