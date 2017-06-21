@@ -18,8 +18,9 @@ class pdb_contacts:
         return self.rp[self.dd[0]<cutoff,0],self.rp[self.dd[0]<cutoff,1]
 
 
+    
 def compareDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5,pdb_seq_subset=None):
-        """Function to compare contacts. This uses a scatterplot and also compares the two contact maps and find the intersection.                                                                                
+    """Function to compare contacts. This uses a scatterplot and also compares the two contact maps and find the intersection.                                                                                
     """
     ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
     idx1=np.array((ix,iy)).T
