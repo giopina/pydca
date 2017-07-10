@@ -265,7 +265,7 @@ class DCA:
         )
         return DI
 
-    def get_ordered_di(self,k_pairs=None,offdiag=4,return_di=False):
+    def get_ordered_di(self,k_pairs=None,offdiag=5,return_di=False):
         """Sort the pairs by their direct information"""
         faraway=_np.triu_indices(self.N,k=offdiag)
         self.di_order=(_np.array(faraway).T[_np.argsort(self.direct_information[faraway])])[::-1]
@@ -274,7 +274,7 @@ class DCA:
                 k_pairs=self.N*2
             return self.direct_information[[self.di_order[:k_pairs,0],self.di_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
 
-    def get_ordered_cfn(self,k_pairs=None,offdiag=4,return_score=False):
+    def get_ordered_cfn(self,k_pairs=None,offdiag=5,return_score=False):
         """Sort the pairs by their Frobenius norm score"""
         faraway=_np.triu_indices(self.N,k=offdiag)
         self.cfn_order=(_np.array(faraway).T[_np.argsort(self.CFN[faraway])])[::-1]
