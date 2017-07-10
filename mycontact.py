@@ -17,7 +17,7 @@ class pdb_contacts:
     def get_pair_idx(self,cutoff=0.8):
         return self.rp[self.dd[0]<cutoff,0],self.rp[self.dd[0]<cutoff,1]
 
-def load_pdb_file(pdb_file):
+def load_pdb_file(pdb_name):
     struct=mdtraj.load(pdb_name)
     pdb_obj=pdb_contacts(struct)
     return pdb_obj
