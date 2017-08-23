@@ -1,0 +1,12 @@
+setup.py
+pydca/__init__.py
+pydca/contactmatrix.py
+pydca/dca.py
+pydca/dca_plots.py
+pydca/gap_analysis.py
+pydca/mycontact.py
+pydca/support_functions.py
+pydca.egg-info/PKG-INFO
+pydca.egg-info/SOURCES.txt
+pydca.egg-info/dependency_links.txt
+pydca.egg-info/top_level.txt
