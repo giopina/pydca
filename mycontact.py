@@ -1,6 +1,6 @@
 import mdtraj
 import numpy as np
-#import dca
+import pydca.dca as dca
 
 class pdb_contacts:
 

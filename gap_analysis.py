@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import support_functions as sf
+import pydca.msa as msa
+import pydca.dca as dca
 
 def plot_gap_in_seq(alin):
     gap_in_seq=np.sum(alin.Z==0,axis=1)
@@ -68,5 +69,5 @@ def insert_gaps(alin,gap_len,gap_num,seed=12345,save_seq=None):
         ipos=np.random.randint(0,high=alin.N-gap_len)
         fasta_list[iseq]['sequence']=fasta_list[iseq]['sequence'][:ipos]+\
                                       '-'*gap_len+fasta_list[iseq]['sequence'][ipos+gap_len:]
-    new_alignment=sf.Alignment(fasta_list)
+    new_alignment=msa.Alignment(fasta_list)
     return new_alignment

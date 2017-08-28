@@ -38,7 +38,7 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 import numpy as _np
-import support_functions as _sf
+import pydca.msa as msa
 import time
 class DCA:
     """Class DCA:
@@ -372,7 +372,7 @@ class DCA:
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
-    alignment=_sf.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
+    alignment=msa.read_alignment(inputfile,check_aminoacid=True) ### TODO: add filter_limit here
     print("=== DCA analysis ===\n Number of sequences = %d\n Alignment lenght= %d\n"%(alignment.M,alignment.N))
     dca_obj=DCA(alignment,pseudocount_weight=pseudocount_weight,theta=theta,get_MI=compute_MI,get_DI=True,get_CFN=compute_CFN)
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
