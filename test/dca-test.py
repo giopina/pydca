@@ -1,4 +1,4 @@
-import pydca.dca
+import pydca.dca as dca
 import sys
 infile=sys.argv[1]
 outfile=sys.argv[2]
