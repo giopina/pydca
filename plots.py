@@ -76,7 +76,7 @@ def scatter_contacts(dca_obj1,dca_obj2,n_pairs=(None,None),iseq=(0,0),score='DI'
     _plt.scatter(idx_both[:,1],idx_both[:,0],alpha=0.99,s=18,c='red')
     _plt.legend()
 
-    def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5,pdb_seq_sumybset=None):
+def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5,pdb_seq_subset=None):
     """Function to plot dca/pdb contacts. This uses a scatterplot and also compares the two contact maps and find the intersection.                                                                               
     """
     ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
