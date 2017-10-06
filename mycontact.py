@@ -51,7 +51,9 @@ def compareDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.8,p
     TP=idx_both.shape[0]
     FP=idx1.shape[0]-idx_both.shape[0]
     FN=idx2.shape[0]-idx_both.shape[0]
-    TN=pdb_seq_subset.shape[0]-idx1.shape[0]-idx2.shape[0]+idx_both.shape[0]
+
+    ### TODO: next line will cause a bug if pdb_seq_subset is not defined!!!
+    TN=pdb_seq_subset.shape[0]**2-idx1.shape[0]-idx2.shape[0]+idx_both.shape[0]
     #TPR=idx_both.shape[0]/len(idx1)
     #if return_idx:
     #    return TPR, n_common,idx1,idx2,idx_both
