@@ -45,9 +45,19 @@ def compareDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.8,p
         iy_new=iy
     idx2=np.array((ix,iy)).T
     idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
-    n_common=idx_both.shape[0]
-    TPR=idx_both.shape[0]/len(idx1)
+    #n_common=idx_both.shape[0]
+    TP=idx_both.shape[0]
+    FP=idx1.shape[0]-idx_both.shape[0]
+    FN=idx2.shape[0]-idx_both.shape[0]
+    TN=pdb_seq_subset.shape[0]-idx1.shape[0]-idx2.shape[0]+idx_both.shape[0]
+    #TPR=idx_both.shape[0]/len(idx1)
+    #if return_idx:
+    #    return TPR, n_common,idx1,idx2,idx_both
+    #else:
+    #    return TPR, n_common
+    #TPR=idx_both.shape[0]/len(idx1)
     if return_idx:
-        return TPR, n_common,idx1,idx2,idx_both
+        return TP,FP,FN,TN,idx1,idx2,idx_both
     else:
-        return TPR, n_common
+        return TP,FP,FN,TN
+ 
