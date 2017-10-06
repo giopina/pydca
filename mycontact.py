@@ -14,8 +14,10 @@ class pdb_contacts:
         # not using this but maybe someday can be useful
         #cc=mdtraj.geometry.squareform(dd,rp)
 
-    def get_pair_idx(self,cutoff=0.8):
-        return self.rp[self.dd[0]<cutoff,0],self.rp[self.dd[0]<cutoff,1]
+    def get_pair_idx(self,cutoff=0.8,offdiag=5):
+        tmp=np.array([self.rp[self.dd[0]<cutoff,0],self.rp[self.dd[0]<cutoff,1]])
+        idx=np.where(tmp[0]<=tmp[1]-offdiag)[0]
+        return tmp[:,idx] 
 
 def load_pdb_file(pdb_name):
     struct=mdtraj.load(pdb_name)

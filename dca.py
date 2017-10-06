@@ -335,7 +335,7 @@ class DCA:
                      (i0,j0,i0,res_i,j0,res_j))
         fh.close()
 
-    def get_pair_idx(self,iseq,n_pairs,score='DI'):
+        def get_pair_idx(self,iseq,n_pairs,score='DI'):
         """Return two lists l1,l2 that contains the indexes of the highest-score pairs.
         (l1[i],l2[i]) is the i-th pair.
         This can then be used to plot, print, etc"""
