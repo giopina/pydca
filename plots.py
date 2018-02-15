@@ -1,5 +1,5 @@
-import dca as _dca
-import mycontact as _mc
+import pydca.dca as _dca
+import pydca.mycontact as _mc
 import matplotlib.pyplot as _plt
 import numpy as _np
         
@@ -80,12 +80,12 @@ def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5,pdb_
     """Function to plot dca/pdb contacts. This uses a scatterplot and also compares the two contact maps and find the intersection.                                                                               
     """
     ix,iy,old_ix,old_iy=dca_obj.get_pair_idx(n_pairs=n_pairs,iseq=iseq,score=score)
-    idx1=np.array((ix,iy)).T
+    idx1=_np.array((ix,iy)).T
     ix,iy=pdb_obj.get_pair_idx(cutoff=cutoff)
     if pdb_seq_subset != None:
         # defining the remapping array
-        remapp=np.ones(len(pdb_obj.seq),dtype=np.int32)*-1
-        remapp[pdb_seq_subset]=np.arange(pdb_seq_subset.shape[0],dtype=np.int32)
+        remapp=_np.ones(len(pdb_obj.seq),dtype=_np.int32)*-1
+        remapp[pdb_seq_subset]=_np.arange(pdb_seq_subset.shape[0],dtype=_np.int32)
         # remapping indexes on the seq subset of interest
         ix=remapp[ix]
         iy=remapp[iy]
@@ -97,15 +97,15 @@ def plotDCAandPDB(dca_obj,pdb_obj,n_pairs=None,iseq=0,score='DI',cutoff=0.5,pdb_
     else:
         ix_new=ix
         iy_new=iy
-    idx2=np.array((ix,iy)).T
-    idx_both=np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
+    idx2=_np.array((ix,iy)).T
+    idx_both=_np.array([x for x in set(tuple(x) for x in idx1) & set(tuple(x) for x in idx2)])
     ### TODO: up to here this is the same as mycontacts.py->compareDCAandPDB, so maybe they can be merged together somehow...
     print( 'Number common contacts = %d' % (idx_both.shape[0]) )
     print( 'Common contacts / DCA pairs = %.2f' % \
            (idx_both.shape[0]/len(idx1)) )
-    plt.figure(figsize=(10,10))
-    plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA')
-    plt.scatter(idx2[:,1],idx2[:,0],alpha=0.99,s=10,c='green',marker='s',label='PDB')
-    plt.scatter(idx_both[:,0],idx_both[:,1],alpha=0.99,s=18,c='red',label='common contacts')
-    plt.scatter(idx_both[:,1],idx_both[:,0],alpha=0.99,s=18,c='red')
-    plt.legend()
+    _plt.figure(figsize=(10,10))
+    _plt.scatter(idx1[:,0],idx1[:,1],alpha=0.99,s=10,c='cyan',marker='s',label='DCA')
+    _plt.scatter(idx2[:,1],idx2[:,0],alpha=0.99,s=10,c='green',marker='s',label='PDB')
+    _plt.scatter(idx_both[:,0],idx_both[:,1],alpha=0.99,s=18,c='red',label='common contacts')
+    _plt.scatter(idx_both[:,1],idx_both[:,0],alpha=0.99,s=18,c='red')
+    _plt.legend()
