@@ -131,6 +131,7 @@ class Alignment:
                 N_align  -> length of sequences in the alignment
                 N_orig   -> list of lengths of original sequences
                 """
+                this_name='alignment'
                 self.letter2numer={\
                 # full AA alphabet
                 # TODO: check all the possible letters not in the 20 aa... Maybe this is just stupid...
@@ -169,7 +170,9 @@ class Alignment:
 
                 if self._CHECK_LEN:
                         if len(set([len(s) for s in self.sequences]))>1:
-                                raise_error(this_name,"ERROR: aligned sequences have different lengths!")
+                                print(len(set([len(s) for s in self.sequences])))
+                                raise_error(this_name,\
+                                            "ERROR: aligned sequences have different lengths!")
                 self.N_align=len(self.sequences[0]) # this is the lenght of each aligned sequences
 
                 self.orig2align=[_np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
@@ -238,18 +241,27 @@ It may look useless. And it probably is."""
                         if lim_string in self.stripped_seqs[iseq]:
                                 fasta_list.pop(iseq)
                 print('New number of sequences=%d'%len(fasta_list))
-                new_alignment=Alignment(fasta_list)
+                new_alignment=Alignment(fasta_list,check_len=self._CHECK_LEN)
                 return new_alignment
 
         def cut_alignment(self,start_ndx,end_ndx):
                 """Cuts an alignment object based on indexes referred to the stripped sequences.
                 Returns a new alignment object as output!"""
                 ### TODO: check that I'm not doing something too stupidly inefficient here...
-                i1=self.strip2align[start_ndx]
-                i2=self.strip2align[end_ndx]
-                new_seqs=[''.join(list(seq)[i1:i2]) for seq in self.sequences]
+                if self._CHECK_LEN==True:
+                        iseq=0 ### any sequence is the same if they have the same length
+                        i1=self.strip2align[iseq][start_ndx]
+                        i2=self.strip2align[iseq][end_ndx]
+                        new_seqs=[''.join(list(seq)[i1:i2]) for seq in self.sequences]
+
+                else:
+                        new_seqs=[]
+                        for iseq,seq in enumerate(self.sequences):
+                                i1=self.strip2align[iseq][start_ndx]
+                                i2=self.strip2align[iseq][end_ndx]
+                                new_seqs.append(''.join(list(seq)[i1:i2]))
                 fasta_list=[ {'sequence':seq,'title':name} for name,seq in zip(self.names,new_seqs)]
-                new_alignment=Alignment(fasta_list)
+                new_alignment=Alignment(fasta_list,check_len=self._CHECK_LEN)
                 return new_alignment
 
         def get_original_seq(self,iseq):
@@ -257,6 +269,9 @@ It may look useless. And it probably is."""
                 seq=_np.array(list(self.sequences[iseq]))
                 orig_seq=''.join(seq[self.orig2align[iseq]])
                 return orig_seq
+
+        def get_stip2orig(self,iseq):
+                return self.align2orig[iseq][self.strip2align[iseq]]
         
         def find_sequence(self,seq):
                 """Looks through the original sequences to find a given sequence. Returns the corresponding index, name and aligned sequence."""
