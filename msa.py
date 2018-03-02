@@ -116,7 +116,7 @@ def FASTA_parser(fasta_filename, to_upper=False, check_aminoacid=False, check_nu
 
 class Alignment:
         
-        def __init__(self,fasta_list):
+        def __init__(self,fasta_list,check_len=True):
                 """This creates an Alignment object from a list of sequences. It strip them from lowercase letters and '.' or '*' characters.
                 -----------------------
                 A bit of nomenclature:
@@ -159,6 +159,7 @@ class Alignment:
                                    'Z':0,\
                                    'B':0,\
                 }
+                self._CHECK_LEN=check_len
                 self.numer2letter=list(self.letter2numer.keys())[:-1] # NB: 0 will always be backmapped to "-"
                 
                 self.M=len(fasta_list) # this is the number of sequences
@@ -166,8 +167,9 @@ class Alignment:
                 self.sequences=[seq['sequence'] for seq in fasta_list] # sequences
                 self.names=[seq['title'] for seq in fasta_list] # names of sequences can be useful in the prostprocessing
 
-                if len(set([len(s) for s in self.sequences]))>1:
-                        raise_error(this_name,"ERROR: aligned sequences have different lengths!")
+                if self._CHECK_LEN:
+                        if len(set([len(s) for s in self.sequences]))>1:
+                                raise_error(this_name,"ERROR: aligned sequences have different lengths!")
                 self.N_align=len(self.sequences[0]) # this is the lenght of each aligned sequences
 
                 self.orig2align=[_np.where([i!='-' and i!='.' for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
@@ -197,14 +199,18 @@ class Alignment:
                         raise_error(this_name,"ERROR: stripped sequences have different lengths!")
                 self.N=len(self.stripped_seqs[0]) # this is the lenght of each stripped sequences
 
-                ### these two lists of lists are redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
-                #self.strip2align=[_np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
-                #self.align2strip=[_np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
-                self.strip2align=_np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]
-                #self.align2strip=_np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
-                self.align2strip=_np.ones(self.N_align,dtype=_np.int32)*-1
-                self.align2strip[_np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]]=_np.arange(self.N)
-                ###
+
+                if self._CHECK_LEN:
+                        ### these two lists of lists are redundant. Since the gaps are always in the same positions only one list for all the sequences is enough...
+                        self.strip2align=[_np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]]*self.M
+                        self.align2strip=_np.ones(self.N_align,dtype=_np.int32)*-1
+                        self.align2strip[_np.where([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])[0]]=_np.arange(self.N)
+                        self.align2strip=[self.align2strip]*self.M
+                        #self.align2strip=_np.cumsum([i!='.' and i!='*' and not i.islower() for i in self.sequences[0]])-1
+                else:
+                        self.strip2align=[_np.where([i!='.' and i!='*' and not i.islower() for i in stringa])[0] for stringa in self.sequences] # this takes x3 times than stripping the seq.
+                        self.align2strip=[_np.cumsum([i!='.' and i!='*' and not i.islower() for i in stringa])-1 for stringa in self.sequences] # ok, this is likely to be unefficient but who cares...
+                        
 
                 self.Z=_np.array([[self.letter2numer[aa] for aa in s] for s in self.stripped_seqs]) # this is a MxN _np.array with the stripped sequences as number # TODO: this is probably not so efficient but who cares
 
@@ -301,10 +307,10 @@ It may look useless. And it probably is."""
                         return False
                 
 
-def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nucleicacid=False):
+def read_alignment(inputfile,filter_limit=None,check_aminoacid=True,check_nucleicacid=False,check_len=True):
         """Reads an alignment from a .fasta format file and returns an Alignment object"""
         fasta_list=FASTA_parser(inputfile,check_aminoacid=check_aminoacid,check_nucleicacid=check_nucleicacid)
-        alin=Alignment(fasta_list)
+        alin=Alignment(fasta_list,check_len)
         if filter_limit!=None:
                 alin=alin.filter_gaps(filter_limit) # TODO is this smart?
         return alin

@@ -325,8 +325,8 @@ class DCA:
         fh=open(filename,'w')
         fh.write('i   j  i_id  j_id\n')
         for i,j in zip(ix,iy):
-            i0=self.alignment.align2orig[iseq][self.alignment.strip2align[i]]
-            j0=self.alignment.align2orig[iseq][self.alignment.strip2align[j]]
+            i0=self.alignment.align2orig[iseq][self.alignment.strip2align[iseq][i]]
+            j0=self.alignment.align2orig[iseq][self.alignment.strip2align[iseq][j]]
             if i0<0 or j0<0:
                 continue # skip pairs of aa that are not in the original sequence 
             res_i=self.alignment.stripped_seqs[iseq][i]
@@ -356,8 +356,8 @@ class DCA:
         old_iy=iy #  wants to color based on the score
         if iseq!=None:
             assert iseq>=0 and iseq<self.M,'ERROR: invalid sequence ID'
-        ix=self.alignment.align2orig[iseq][self.alignment.strip2align[old_ix]] # Remapping indexes on 
-        iy=self.alignment.align2orig[iseq][self.alignment.strip2align[old_iy]] #  the sequence of interest
+        ix=self.alignment.align2orig[iseq][self.alignment.strip2align[iseq][old_ix]] # Remapping indexes on 
+        iy=self.alignment.align2orig[iseq][self.alignment.strip2align[iseq][old_iy]] #  the sequence of interest
 
         old_ix=old_ix[ix>=0] # Here I'm removing
         old_iy=old_iy[ix>=0] # pairs with negative
