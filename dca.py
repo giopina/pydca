@@ -282,6 +282,17 @@ class DCA:
             if k_pairs==None:
                 k_pairs=self.N*2
             return self.CFN[[self.cfn_order[:k_pairs,0],self.cfn_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+
+    def get_ordered_Jij(self,k_pairs=None,offdiag=5,return_score=False,iseq=0):
+        """Sort the pairs by their abs(Jij) score"""
+        faraway=_np.triu_indices(self.N,k=offdiag)
+        self.__compute_Jij(iseq)
+        self.Jij_order=(_np.array(faraway).T[_np.argsort(self.Jij[faraway])])[::-1]
+        if return_score:
+            if k_pairs==None:
+                k_pairs=self.N*2
+            return self.Jij[[self.Jij_order[:k_pairs,0],self.Jij_order[:k_pairs,1]]] ### TODO: this is not creating a copy. Be careful
+
         
     def print_results(self,filename):
         """Prints DI and MI (compatible with the output of the matlab code)"""
@@ -305,7 +316,14 @@ class DCA:
         fh.close()
         
     def print_contacts(self,filename,iseq,n_pairs=None,score='DI',):
-        """Prints pairs with highest coupling score (compatible with AWSEM-ER input)"""
+        """Prints pairs with highest coupling score (compatible with AWSEM-ER input)
+            score options:
+        'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
+        'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
+        'Jij' -> Values of the coupling matrix tensor for the aminoacid types actually
+             in the sequence...
+
+        """
         
         if n_pairs==None:
             n_pairs=self.N*2
@@ -316,6 +334,9 @@ class DCA:
         elif score=='CFN':
             ix=self.cfn_order[:n_pairs,0]
             iy=self.cfn_order[:n_pairs,1]
+        elif score=='Jij':
+            ix=self.Jij_order[:n_pairs,0]
+            iy=self.Jij_order[:n_pairs,1]
         else:
             raise ValueError("Unrecognize score option: '%s'"%score)
         ###
@@ -338,7 +359,13 @@ class DCA:
     def get_pair_idx(self,iseq,n_pairs,score='DI'):
         """Returns two lists l1,l2 that contains the indexes of the highest-score pairs.
         (l1[i],l2[i]) is the i-th pair.
-        This can then be used to plot, print, etc"""
+        This can then be used to plot, print, etc
+        score options:
+        'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
+        'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
+        'Jij' -> Values of the coupling matrix tensor for the aminoacid types actually
+             in the sequence...
+        """
         if n_pairs==None:
             n_pairs=self.N*2 # the n. of highest-score pairs to consider. By default is 2x the length of the sequence
             
@@ -349,6 +376,9 @@ class DCA:
         elif score=='CFN':
             ix=self.cfn_order[:n_pairs,0]
             iy=self.cfn_order[:n_pairs,1]
+        elif score=='Jij':
+            ix=self.Jij_order[:n_pairs,0]
+            iy=self.Jij_order[:n_pairs,1]
         else:
             raise ValueError("Unrecognize score option: '%s'"%score)
 
@@ -370,10 +400,27 @@ class DCA:
         return ix,iy,old_ix,old_iy
 
 
-    def get_Jij(self,iseq):
+    def get_Jij_ab(self):
         """Returns the matrix containing the couplings J_ij(a,b) with a,b
         being the aminoacid types in that position for the specific sequence requested"""
         return self.__invC
+
+    def __compute_Jij(self,iseq):
+        """
+        being the aminoacid types in that position for the specific sequence requested"""
+        self.Jij=_np.zeros((self.N,self.N))
+        seq=self.alignment.Z[iseq]
+        for i in range(self.N):
+            for j in range(self.N):
+                #if np.abs(i-j)<4:
+                #    continue
+                a=seq[i]
+                b=seq[j]
+                if a==20 or b==20:
+                    continue
+                self.Jij[i,j]=_np.abs(self.__invC[i,a,j,b])
+
+
         
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""

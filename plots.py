@@ -18,6 +18,8 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.
     score options:
     'DI' (default) -> direct information as defined by Morcos et al., PNAS 2011
     'CFN' -> Frobenius norm as defined by Ekerberg et al., PRE 2013
+    'Jij' -> Values of the coupling matrix tensor for the aminoacid types actually
+             in the sequence...
 
     lower_half=True prints the contact map in the bottom-right triangle of the plot,
     default prints it on top-left side
@@ -36,6 +38,8 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.
                 matr[[ix,iy]]=dca_obj.direct_information[[old_ix,old_iy]]
             if score=='CFN':
                 matr[[ix,iy]]=dca_obj.CFN[[old_ix,old_iy]]
+            if score=='Jij':
+                matr[[ix,iy]]=dca_obj.Jij[[old_ix,old_iy]]
         iny, inx = _np.indices(matr.shape) 
         my_mask=inx<=iny # This will fill only the desired half of the canvas
     else:
@@ -47,6 +51,8 @@ def plot_contacts(dca_obj,n_pairs=None,lower_half=False,iseq=None,colormap=_plt.
                 matr[[iy,ix]]=dca_obj.direct_information[[old_iy,old_ix]]
             if score=='CFN':
                 matr[[iy,ix]]=dca_obj.CFN[[old_iy,old_ix]]
+            if score=='Jij':
+                matr[[iy,ix]]=dca_obj.Jij[[old_iy,old_ix]]
         iny, inx = _np.indices(matr.shape) 
         my_mask=inx>=iny # This will fill only the desired half of the canvas
 
