@@ -88,7 +88,7 @@ class DCA:
             self.get_ordered_cfn()
             print("time elapsed = %.2f s"%(time.time()-t0))
             
-        del self.__invC ### TODO: maybe sometimes one wants to save it?
+        #del self.__invC ### TODO: maybe sometimes one wants to save it?
         del self.__Pi   ### 
         print("Done!\n Total time = %.2f s"%(time.time()-t0tot))
             
@@ -336,7 +336,7 @@ class DCA:
         fh.close()
 
     def get_pair_idx(self,iseq,n_pairs,score='DI'):
-        """Return two lists l1,l2 that contains the indexes of the highest-score pairs.
+        """Returns two lists l1,l2 that contains the indexes of the highest-score pairs.
         (l1[i],l2[i]) is the i-th pair.
         This can then be used to plot, print, etc"""
         if n_pairs==None:
@@ -365,10 +365,16 @@ class DCA:
         ix=ix[ix>=0]         # (which correspond 
         old_ix=old_ix[iy>=0] # to deletions 
         old_iy=old_iy[iy>=0] # in the seq of interest)
-        ix=ix[iy>=0]         # 
-        iy=iy[iy>=0]         # 
+        ix=ix[iy>=0]         #
+        iy=iy[iy>=0]         #
         return ix,iy,old_ix,old_iy
 
+
+    def get_Jij(self,iseq):
+        """Returns the matrix containing the couplings J_ij(a,b) with a,b
+        being the aminoacid types in that position for the specific sequence requested"""
+        return self.__invC
+        
 def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,compute_CFN=False):
     """Perform mfDCA starting from a FASTA input file. Returns a DCA object"""
     ### TODO: add "filter" argument to filter sequences with too many gaps. add "method" arguments to use different DCA implementations
@@ -378,3 +384,4 @@ def compute_dca(inputfile,pseudocount_weight=0.5,theta=0.1,compute_MI=False,comp
     print(" Effective number of sequences = %d\n"%dca_obj.Meff)
     print("=== DCA completed ===")
     return dca_obj
+
